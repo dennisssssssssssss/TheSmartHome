@@ -7,8 +7,7 @@
         public string Tip { get; set; } = string.Empty; // ex: Lampa, Termostat, etc.
         public bool EstePornit { get; set; }
         public double Valoare { get; set; } // ex: temp pentru termostat, luminozitate pentru lampa.
-        public int CaneraId { get; set; } // Cheie externa catre Camera
-
-
+        public int? RoomId { get; set; } // Foreign key to Room
+        public Room? Room { get; set; }
     }
 }
