@@ -1,0 +1,259 @@
+﻿<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartHome Manager — Dashboard</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: { accent: '#FBBF24' }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    .device-on {
+      box-shadow: 0 10px 30px rgba(251,191,36,0.15), 0 0 12px rgba(251,191,36,0.09) inset;
+    }
+    .glow {
+      filter: drop-shadow(0 6px 18px rgba(251,191,36,0.28));
+    }
+    /* switch */
+    .toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 9999px;
+      padding: 2px;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color .2s;
+    }
+    .thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background: white;
+      transition: transform .18s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen antialiased">
+  <div class="max-w-7xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-semibold">SmartHome — Dashboard</h1>
+      <div class="flex items-center gap-4">
+        <button id="refreshBtn" class="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-sm">Reîmprospătează</button>
+        <div id="status" class="text-sm text-gray-400"></div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2 class="text-lg font-medium mb-4">Camere</h2>
+        <div id="roomsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </section>
+
+      <section class="mt-10">
+        <h2 class="text-lg font-medium mb-3">Automatizări active</h2>
+        <div id="automationsContainer" class="space-y-2 text-sm text-gray-300"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const roomsContainer = document.getElementById('roomsContainer');
+    const automationsContainer = document.getElementById('automationsContainer');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    function showStatus(text, level = 'info') {
+      statusEl.textContent = text || '';
+      statusEl.className = level === 'error' ? 'text-red-400 text-sm' : 'text-gray-400 text-sm';
+    }
+
+    async function fetchJson(url, opts = {}) {
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json', ...(opts.headers || {}) },
+        ...opts
+      });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      if (res.status === 204) return null;
+      return res.json();
+    }
+
+    function createDeviceElement(device) {
+      const on = !!device.isOn;
+      const card = document.createElement('div');
+      card.className = `p-4 rounded-lg bg-gray-800/60 border border-gray-700 flex items-center justify-between gap-3 ${on ? 'device-on' : ''}`;
+      // left
+      const left = document.createElement('div');
+      left.className = 'flex items-center gap-3';
+      const icon = document.createElement('div');
+      icon.className = `w-10 h-10 rounded-full flex items-center justify-center ${on ? 'bg-yellow-400 text-gray-900 glow' : 'bg-gray-700 text-gray-400'}`;
+      icon.innerHTML = on
+        ? '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3m8.66-10.34l-2.12 2.12M5.46 5.46l2.12 2.12M21 12h-3M6 12H3m14.66 5.34l-2.12-2.12M7.58 18.54l2.12-2.12"/></svg>'
+        : '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>';
+      const meta = document.createElement('div');
+      meta.innerHTML = `<div class="font-medium">${escapeHtml(device.name)}</div><div class="text-xs text-gray-400">${escapeHtml(device.type)}</div>`;
+      left.appendChild(icon);
+      left.appendChild(meta);
+
+      // right - toggle
+      const right = document.createElement('div');
+      right.className = 'flex items-center gap-3';
+      const valueEl = document.createElement('div');
+      valueEl.className = 'text-sm text-gray-300';
+      if (device.value !== undefined && device.value !== null) {
+        valueEl.textContent = `Val: ${device.value}`;
+      }
+
+      const toggle = document.createElement('button');
+      toggle.className = `toggle ${on ? 'bg-accent' : 'bg-gray-700'}`;
+      toggle.setAttribute('data-id', device.id);
+      toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+      toggle.innerHTML = `<div class="thumb" style="transform: translateX(${on ? '20px' : '0'})"></div>`;
+
+      toggle.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const id = device.id;
+        const newState = !device.isOn;
+        toggle.disabled = true;
+        showStatus('Trimit comandă...', 'info');
+        try {
+          const payload = { command: newState ? 'TurnOn' : 'TurnOff' };
+          await fetchJson(`/api/Devices/${id}/control`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          // update UI state
+          device.isOn = newState;
+          // animate thumb and styles
+          toggle.classList.toggle('bg-accent', newState);
+          const thumb = toggle.querySelector('.thumb');
+          thumb.style.transform = `translateX(${newState ? '20px' : '0'})`;
+          if (newState) {
+            card.classList.add('device-on');
+            icon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-yellow-400 text-gray-900 glow';
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3m8.66-10.34l-2.12 2.12M5.46 5.46l2.12 2.12M21 12h-3M6 12H3m14.66 5.34l-2.12-2.12M7.58 18.54l2.12-2.12"/></svg>';
+          } else {
+            card.classList.remove('device-on');
+            icon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-gray-700 text-gray-400';
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>';
+          }
+          showStatus('Comandă aplicată', 'info');
+        } catch (err) {
+          console.error(err);
+          showStatus('Eroare la trimiterea comenzii', 'error');
+        } finally {
+          toggle.disabled = false;
+        }
+      });
+
+      right.appendChild(valueEl);
+      right.appendChild(toggle);
+
+      card.appendChild(left);
+      card.appendChild(right);
+
+      return card;
+    }
+
+    function createRoomCard(room) {
+      const card = document.createElement('article');
+      card.className = 'p-6 rounded-2xl bg-gradient-to-br from-gray-800/60 to-gray-800/40 border border-gray-700';
+
+      const header = document.createElement('div');
+      header.className = 'flex items-start justify-between mb-4';
+      header.innerHTML = `<div><div class="text-lg font-semibold">${escapeHtml(room.name)}</div><div class="text-xs text-gray-400">${room.deviceCount} dispozitiv(e)</div></div>`;
+
+      const devicesGrid = document.createElement('div');
+      devicesGrid.className = 'space-y-3';
+
+      if (!room.devices || room.devices.length === 0) {
+        devicesGrid.innerHTML = '<div class="text-sm text-gray-400 italic">Niciun dispozitiv</div>';
+      } else {
+        room.devices.forEach(d => {
+          // normalize property names (API returns camelCase)
+          const device = {
+            id: d.id,
+            name: d.name,
+            type: d.type,
+            isOn: d.isOn,
+            value: d.value
+          };
+          devicesGrid.appendChild(createDeviceElement(device));
+        });
+      }
+
+      card.appendChild(header);
+      card.appendChild(devicesGrid);
+      return card;
+    }
+
+    async function loadRooms() {
+      showStatus('Se încarcă camerele...');
+      try {
+        const rooms = await fetchJson('/api/Rooms');
+        roomsContainer.innerHTML = '';
+        rooms.forEach(r => {
+          roomsContainer.appendChild(createRoomCard(r));
+        });
+        showStatus('');
+      } catch (err) {
+        console.error(err);
+        showStatus('Eroare la încărcare camere', 'error');
+      }
+    }
+
+    async function loadAutomations() {
+      try {
+        const autos = await fetchJson('/api/Automations');
+        const enabled = (autos || []).filter(a => a.enabled);
+        if (enabled.length === 0) {
+          automationsContainer.innerHTML = '<div class="text-sm text-gray-400 italic">Nicio automatizare activă</div>';
+          return;
+        }
+        automationsContainer.innerHTML = '';
+        enabled.forEach(a => {
+          const el = document.createElement('div');
+          const nextLocal = a.nextRunUtc ? new Date(a.nextRunUtc).toLocaleString() : '—';
+          el.className = 'p-3 rounded bg-gray-800/50 border border-gray-700 flex justify-between';
+          el.innerHTML = `<div><div class="font-medium">${escapeHtml(a.name)}</div><div class="text-xs text-gray-400">Acțiune: ${escapeHtml(a.action)} ${a.value ? `(${a.value})` : ''}</div></div><div class="text-xs text-gray-400">Urm: ${escapeHtml(nextLocal)}</div>`;
+          automationsContainer.appendChild(el);
+        });
+      } catch (err) {
+        console.error(err);
+        automationsContainer.innerHTML = '<div class="text-sm text-red-400">Eroare la încărcarea automatizărilor</div>';
+      }
+    }
+
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return '';
+      return String(s).replaceAll('&', '&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+    }
+
+    refreshBtn.addEventListener('click', () => {
+      loadRooms();
+      loadAutomations();
+    });
+
+    // initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadRooms();
+      loadAutomations();
+      // poll automations periodically (every 60s) to update UI if server-side rules change
+      setInterval(loadAutomations, 60_000);
+    });
+  </script>
+</body>
+</html>

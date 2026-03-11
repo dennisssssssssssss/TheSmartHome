@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace SmartHomeManager.Dtos
@@ -13,5 +14,6 @@ namespace SmartHomeManager.Dtos
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public int DeviceCount { get; set; }
+        public List<DeviceReadDto> Devices { get; set; } = new List<DeviceReadDto>();
     }
 }

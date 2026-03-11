@@ -12,5 +12,6 @@ namespace SmartHomeManager.Data
         public DbSet<User> Users { get; set; }
         public DbSet<AutomationRule> AutomationRules { get; set; }
         public DbSet<DeviceEnergyUsage> DeviceEnergyUsages { get; set; }
+        public DbSet<AutomationExecution> AutomationExecutions { get; set; } // New: store executions/logs of automation runs
     }
 }

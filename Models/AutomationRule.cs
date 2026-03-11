@@ -5,12 +5,14 @@ namespace SmartHomeManager.Models
     public class AutomationRule
     {
         public int Id { get; set; }
+
         [Required]
         public string Name { get; set; } = string.Empty;
 
-        // Which device this rule targets
-        [Required]
-        public int DeviceId { get; set; }
+        // Target: either a specific device or a room. Make both nullable to allow room-wide rules.
+        public int? DeviceId { get; set; }
+
+        public int? RoomId { get; set; }
 
         // Action to perform: e.g. "TurnOn", "TurnOff", "SetValue"
         [Required]

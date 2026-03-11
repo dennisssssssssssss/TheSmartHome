@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartHomeManager.Data;
 using SmartHomeManager.Dtos;
@@ -70,6 +71,16 @@ namespace SmartHomeManager.Controllers
         public async Task<ActionResult<DeviceReadDto>> CreateDevice([FromBody] DeviceCreateDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // If a RoomId is provided, validate that room exists and return 404 with a clear message if not
+            if (dto.RoomId.HasValue)
+            {
+                var roomExists = await _db.Rooms.AnyAsync(r => r.Id == dto.RoomId.Value);
+                if (!roomExists)
+                {
+                    return NotFound(new { Message = "Camera nu există" });
+                }
+            }
 
             var device = new Device
             {
