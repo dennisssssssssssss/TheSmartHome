@@ -40,14 +40,28 @@ namespace SmartHomeManager.Controllers
             return CreatedAtAction(nameof(Get), new { id = rule.Id }, rule);
         }
 
+        // Explicit PUT to update allowed fields
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] AutomationRule dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var rule = await _db.AutomationRules.FindAsync(id);
             if (rule == null) return NotFound();
-            _db.Entry(rule).CurrentValues.SetValues(dto);
+
+            // Update only the specified fields to avoid accidental overwrites
+            rule.Name = dto.Name;
+            rule.DeviceId = dto.DeviceId;
+            rule.Action = dto.Action;
+            rule.NextRunUtc = dto.NextRunUtc;
+            rule.Enabled = dto.Enabled;
+            // Optional: allow updating Value and IntervalMinutes if provided
+            rule.Value = dto.Value;
+            rule.IntervalMinutes = dto.IntervalMinutes;
+
+            _db.AutomationRules.Update(rule);
             await _db.SaveChangesAsync();
+
             return NoContent();
         }
 

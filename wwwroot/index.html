@@ -1,259 +1,462 @@
 ﻿<!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SmartHome Manager — Dashboard</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SmartHome Manager — Dashboard Live</title>
 
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: { accent: '#FBBF24' }
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { accent: '#FBBF24', emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' } } } }
+        };
+    </script>
+    <style>
+        .device-on {
+            box-shadow: 0 10px 30px rgba(251,191,36,0.15), 0 0 12px rgba(251,191,36,0.09) inset;
         }
-      }
-    };
-  </script>
 
-  <style>
-    .device-on {
-      box-shadow: 0 10px 30px rgba(251,191,36,0.15), 0 0 12px rgba(251,191,36,0.09) inset;
-    }
-    .glow {
-      filter: drop-shadow(0 6px 18px rgba(251,191,36,0.28));
-    }
-    /* switch */
-    .toggle {
-      width: 44px;
-      height: 24px;
-      border-radius: 9999px;
-      padding: 2px;
-      display: inline-flex;
-      align-items: center;
-      cursor: pointer;
-      transition: background-color .2s;
-    }
-    .thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 9999px;
-      background: white;
-      transition: transform .18s;
-      box-shadow: 0 1px 4px rgba(0,0,0,.4);
-    }
-  </style>
+        .glow {
+            filter: drop-shadow(0 6px 18px rgba(251,191,36,0.28));
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            border-radius: 9999px;
+            padding: 2px;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color .2s;
+        }
+
+        .toggle-sm {
+            width: 34px;
+            height: 18px;
+        }
+
+        .thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 9999px;
+            background: white;
+            transition: transform .18s;
+            box-shadow: 0 1px 4px rgba(0,0,0,.4);
+        }
+
+        .thumb-sm {
+            width: 14px;
+            height: 14px;
+        }
+
+        .modal-backdrop {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen antialiased">
-  <div class="max-w-7xl mx-auto p-6">
-    <header class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-semibold">SmartHome — Dashboard</h1>
-      <div class="flex items-center gap-4">
-        <button id="refreshBtn" class="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-sm">Reîmprospătează</button>
-        <div id="status" class="text-sm text-gray-400"></div>
-      </div>
-    </header>
+    <div class="max-w-7xl mx-auto p-6">
+        <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-gray-800 pb-4">
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">SmartHome Dashboard</h1>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="addRoomBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">+ Cameră</button>
+                <button id="addAutomationBtn" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-medium transition-colors shadow-lg shadow-emerald-500/20">+ Automatizare</button>
+                <button id="refreshBtn" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors" title="Sincronizare manuală">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+                <div id="status" class="text-sm font-medium text-gray-400 min-w-[120px] text-right"></div>
+            </div>
+        </header>
 
-    <main>
-      <section>
-        <h2 class="text-lg font-medium mb-4">Camere</h2>
-        <div id="roomsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-      </section>
+        <main>
+            <section>
+                <div class="flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    <h2 class="text-xl font-semibold text-gray-200">Dispozitive pe Camere</h2>
+                </div>
+                <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </section>
 
-      <section class="mt-10">
-        <h2 class="text-lg font-medium mb-3">Automatizări active</h2>
-        <div id="automationsContainer" class="space-y-2 text-sm text-gray-300"></div>
-      </section>
-    </main>
-  </div>
+            <section class="mt-14">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <h2 class="text-xl font-semibold text-gray-200">Reguli de Automatizare</h2>
+                </div>
+                <div id="automationsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300"></div>
+            </section>
+        </main>
+    </div>
 
-  <script>
-    const statusEl = document.getElementById('status');
-    const roomsContainer = document.getElementById('roomsContainer');
-    const automationsContainer = document.getElementById('automationsContainer');
-    const refreshBtn = document.getElementById('refreshBtn');
+    <div id="roomModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-backdrop absolute inset-0 rounded-xl"></div>
+        <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
+            <h3 id="roomModalTitle" class="text-lg font-semibold mb-4 text-white">Cameră Nouă</h3>
+            <input id="roomNameInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white" placeholder="Numele camerei (ex: Dormitor)" />
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeModal(roomModal)" class="px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">Anulează</button>
+                <button id="saveRoomBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">Salvează</button>
+            </div>
+        </div>
+    </div>
 
-    function showStatus(text, level = 'info') {
-      statusEl.textContent = text || '';
-      statusEl.className = level === 'error' ? 'text-red-400 text-sm' : 'text-gray-400 text-sm';
-    }
+    <div id="deviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-backdrop absolute inset-0 rounded-xl"></div>
+        <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
+            <h3 id="deviceModalTitle" class="text-lg font-semibold mb-4 text-white">Dispozitiv Nou</h3>
+            <input id="deviceNameInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white mb-4" placeholder="Nume (ex: Veioză colț)" />
+            <input id="deviceTypeInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white" placeholder="Tip (ex: Lumina, TV)" />
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeModal(deviceModal)" class="px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">Anulează</button>
+                <button id="saveDeviceBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">Salvează</button>
+            </div>
+        </div>
+    </div>
 
-    async function fetchJson(url, opts = {}) {
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json', ...(opts.headers || {}) },
-        ...opts
-      });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      if (res.status === 204) return null;
-      return res.json();
-    }
+    <div id="automationModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-backdrop absolute inset-0 rounded-xl"></div>
+        <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-md z-10 border border-gray-700 shadow-2xl">
+            <h3 id="autoModalTitle" class="text-lg font-semibold mb-4 text-white">Regulă de Automatizare</h3>
+            <input id="autoNameInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-emerald-500 outline-none text-white mb-4" placeholder="Nume regulă (ex: Aprinde seara)" />
+            <select id="autoDeviceSelect" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-emerald-500 outline-none text-white mb-4"></select>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Acțiune</label>
+                    <select id="autoActionSelect" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-emerald-500 outline-none text-white">
+                        <option value="TurnOn">Aprinde (ON)</option>
+                        <option value="TurnOff">Stinge (OFF)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Ora execuției</label>
+                    <input type="datetime-local" id="autoTimeInput" class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-emerald-500 outline-none text-white text-sm" />
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeModal(automationModal)" class="px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">Anulează</button>
+                <button id="saveAutoBtn" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors">Salvează</button>
+            </div>
+        </div>
+    </div>
 
-    function createDeviceElement(device) {
-      const on = !!device.isOn;
-      const card = document.createElement('div');
-      card.className = `p-4 rounded-lg bg-gray-800/60 border border-gray-700 flex items-center justify-between gap-3 ${on ? 'device-on' : ''}`;
-      // left
-      const left = document.createElement('div');
-      left.className = 'flex items-center gap-3';
-      const icon = document.createElement('div');
-      icon.className = `w-10 h-10 rounded-full flex items-center justify-center ${on ? 'bg-yellow-400 text-gray-900 glow' : 'bg-gray-700 text-gray-400'}`;
-      icon.innerHTML = on
-        ? '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3m8.66-10.34l-2.12 2.12M5.46 5.46l2.12 2.12M21 12h-3M6 12H3m14.66 5.34l-2.12-2.12M7.58 18.54l2.12-2.12"/></svg>'
-        : '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>';
-      const meta = document.createElement('div');
-      meta.innerHTML = `<div class="font-medium">${escapeHtml(device.name)}</div><div class="text-xs text-gray-400">${escapeHtml(device.type)}</div>`;
-      left.appendChild(icon);
-      left.appendChild(meta);
+    <script>
+        const statusEl = document.getElementById('status');
+        const roomsContainer = document.getElementById('roomsContainer');
+        const automationsContainer = document.getElementById('automationsContainer');
 
-      // right - toggle
-      const right = document.createElement('div');
-      right.className = 'flex items-center gap-3';
-      const valueEl = document.createElement('div');
-      valueEl.className = 'text-sm text-gray-300';
-      if (device.value !== undefined && device.value !== null) {
-        valueEl.textContent = `Val: ${device.value}`;
-      }
+        // Globals pt Editare
+        let allDevices = [];
+        let allAutomations = [];
+        let editingRoomId = null;
+        let editingDeviceId = null;
+        let editingAutoId = null;
+        let targetRoomIdForDevice = null;
 
-      const toggle = document.createElement('button');
-      toggle.className = `toggle ${on ? 'bg-accent' : 'bg-gray-700'}`;
-      toggle.setAttribute('data-id', device.id);
-      toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-      toggle.innerHTML = `<div class="thumb" style="transform: translateX(${on ? '20px' : '0'})"></div>`;
+        // System flag pt Live Refresh
+        let isModalOpen = false;
 
-      toggle.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const id = device.id;
-        const newState = !device.isOn;
-        toggle.disabled = true;
-        showStatus('Trimit comandă...', 'info');
-        try {
-          const payload = { command: newState ? 'TurnOn' : 'TurnOff' };
-          await fetchJson(`/api/Devices/${id}/control`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          // update UI state
-          device.isOn = newState;
-          // animate thumb and styles
-          toggle.classList.toggle('bg-accent', newState);
-          const thumb = toggle.querySelector('.thumb');
-          thumb.style.transform = `translateX(${newState ? '20px' : '0'})`;
-          if (newState) {
-            card.classList.add('device-on');
-            icon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-yellow-400 text-gray-900 glow';
-            icon.innerHTML = '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3m8.66-10.34l-2.12 2.12M5.46 5.46l2.12 2.12M21 12h-3M6 12H3m14.66 5.34l-2.12-2.12M7.58 18.54l2.12-2.12"/></svg>';
-          } else {
-            card.classList.remove('device-on');
-            icon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-gray-700 text-gray-400';
-            icon.innerHTML = '<svg xmlns="http://www.w3.org/1999/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>';
-          }
-          showStatus('Comandă aplicată', 'info');
-        } catch (err) {
-          console.error(err);
-          showStatus('Eroare la trimiterea comenzii', 'error');
-        } finally {
-          toggle.disabled = false;
+        // Utilitare API & UI
+        function showStatus(text, type = 'info') {
+            statusEl.textContent = text;
+            statusEl.className = type === 'error' ? 'text-red-400 text-sm font-medium animate-pulse' : 'text-emerald-400 text-sm font-medium';
+            setTimeout(() => statusEl.textContent = '', 3000);
         }
-      });
 
-      right.appendChild(valueEl);
-      right.appendChild(toggle);
-
-      card.appendChild(left);
-      card.appendChild(right);
-
-      return card;
-    }
-
-    function createRoomCard(room) {
-      const card = document.createElement('article');
-      card.className = 'p-6 rounded-2xl bg-gradient-to-br from-gray-800/60 to-gray-800/40 border border-gray-700';
-
-      const header = document.createElement('div');
-      header.className = 'flex items-start justify-between mb-4';
-      header.innerHTML = `<div><div class="text-lg font-semibold">${escapeHtml(room.name)}</div><div class="text-xs text-gray-400">${room.deviceCount} dispozitiv(e)</div></div>`;
-
-      const devicesGrid = document.createElement('div');
-      devicesGrid.className = 'space-y-3';
-
-      if (!room.devices || room.devices.length === 0) {
-        devicesGrid.innerHTML = '<div class="text-sm text-gray-400 italic">Niciun dispozitiv</div>';
-      } else {
-        room.devices.forEach(d => {
-          // normalize property names (API returns camelCase)
-          const device = {
-            id: d.id,
-            name: d.name,
-            type: d.type,
-            isOn: d.isOn,
-            value: d.value
-          };
-          devicesGrid.appendChild(createDeviceElement(device));
-        });
-      }
-
-      card.appendChild(header);
-      card.appendChild(devicesGrid);
-      return card;
-    }
-
-    async function loadRooms() {
-      showStatus('Se încarcă camerele...');
-      try {
-        const rooms = await fetchJson('/api/Rooms');
-        roomsContainer.innerHTML = '';
-        rooms.forEach(r => {
-          roomsContainer.appendChild(createRoomCard(r));
-        });
-        showStatus('');
-      } catch (err) {
-        console.error(err);
-        showStatus('Eroare la încărcare camere', 'error');
-      }
-    }
-
-    async function loadAutomations() {
-      try {
-        const autos = await fetchJson('/api/Automations');
-        const enabled = (autos || []).filter(a => a.enabled);
-        if (enabled.length === 0) {
-          automationsContainer.innerHTML = '<div class="text-sm text-gray-400 italic">Nicio automatizare activă</div>';
-          return;
+        async function fetchApi(url, method = 'GET', body = null) {
+            const opts = { method, headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(url, opts);
+            if (!res.ok) throw new Error(res.statusText);
+            return res.status !== 204 ? res.json() : null;
         }
-        automationsContainer.innerHTML = '';
-        enabled.forEach(a => {
-          const el = document.createElement('div');
-          const nextLocal = a.nextRunUtc ? new Date(a.nextRunUtc).toLocaleString() : '—';
-          el.className = 'p-3 rounded bg-gray-800/50 border border-gray-700 flex justify-between';
-          el.innerHTML = `<div><div class="font-medium">${escapeHtml(a.name)}</div><div class="text-xs text-gray-400">Acțiune: ${escapeHtml(a.action)} ${a.value ? `(${a.value})` : ''}</div></div><div class="text-xs text-gray-400">Urm: ${escapeHtml(nextLocal)}</div>`;
-          automationsContainer.appendChild(el);
+
+        function openModal(modalEl, focusEl) { isModalOpen = true; modalEl.classList.remove('hidden'); if (focusEl) focusEl.focus(); }
+        function closeModal(modalEl) { isModalOpen = false; modalEl.classList.add('hidden'); }
+        function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); }
+        function toLocalIsoString(date) { const d = new Date(date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+
+        // ================= CAMERE =================
+        document.getElementById('addRoomBtn').addEventListener('click', () => {
+            editingRoomId = null; document.getElementById('roomModalTitle').textContent = 'Cameră Nouă';
+            document.getElementById('roomNameInput').value = ''; openModal(document.getElementById('roomModal'), document.getElementById('roomNameInput'));
         });
-      } catch (err) {
-        console.error(err);
-        automationsContainer.innerHTML = '<div class="text-sm text-red-400">Eroare la încărcarea automatizărilor</div>';
-      }
-    }
 
-    function escapeHtml(s) {
-      if (s === null || s === undefined) return '';
-      return String(s).replaceAll('&', '&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-    }
+        window.editRoom = function (id, name) {
+            editingRoomId = id; document.getElementById('roomModalTitle').textContent = 'Editează Camera';
+            document.getElementById('roomNameInput').value = name; openModal(document.getElementById('roomModal'), document.getElementById('roomNameInput'));
+        }
 
-    refreshBtn.addEventListener('click', () => {
-      loadRooms();
-      loadAutomations();
-    });
+        document.getElementById('saveRoomBtn').addEventListener('click', async () => {
+            const name = document.getElementById('roomNameInput').value.trim();
+            if (!name) return showStatus('Nume invalid', 'error');
+            try {
+                if (editingRoomId) await fetchApi(`/api/Rooms/${editingRoomId}`, 'PUT', { id: editingRoomId, name });
+                else await fetchApi('/api/Rooms', 'POST', { name });
+                closeModal(document.getElementById('roomModal')); loadRooms(); showStatus('Salvat!');
+            } catch (e) { showStatus('Eroare', 'error'); }
+        });
 
-    // initial load
-    document.addEventListener('DOMContentLoaded', () => {
-      loadRooms();
-      loadAutomations();
-      // poll automations periodically (every 60s) to update UI if server-side rules change
-      setInterval(loadAutomations, 60_000);
-    });
-  </script>
+        window.deleteRoom = async function (id, name) {
+            if (confirm(`Ștergi definitiv camera "${name}" și dispozitivele ei?`)) {
+                try { await fetchApi(`/api/Rooms/${id}`, 'DELETE'); loadRooms(); showStatus('Ștearsă!'); } catch (e) { showStatus('Eroare', 'error'); }
+            }
+        }
+
+        // ================= DISPOZITIVE =================
+        window.openDeviceModal = function (roomId, device = null) {
+            targetRoomIdForDevice = roomId;
+            editingDeviceId = device ? device.id : null;
+            document.getElementById('deviceModalTitle').textContent = device ? 'Editează Dispozitiv' : 'Dispozitiv Nou';
+            document.getElementById('deviceNameInput').value = device ? device.name : '';
+            document.getElementById('deviceTypeInput').value = device ? device.type : '';
+            openModal(document.getElementById('deviceModal'), document.getElementById('deviceNameInput'));
+        }
+
+        document.getElementById('saveDeviceBtn').addEventListener('click', async () => {
+            const name = document.getElementById('deviceNameInput').value.trim();
+            const type = document.getElementById('deviceTypeInput').value.trim();
+            if (!name || !type) return showStatus('Completează tot', 'error');
+            try {
+                const payload = { id: editingDeviceId || 0, name, type, isOn: false, value: 0, roomId: targetRoomIdForDevice };
+                if (editingDeviceId) await fetchApi(`/api/Devices/${editingDeviceId}`, 'PUT', payload);
+                else await fetchApi('/api/Devices', 'POST', payload);
+                closeModal(document.getElementById('deviceModal')); loadRooms(); loadAutomations(); showStatus('Salvat!');
+            } catch (e) { showStatus('Eroare la salvare', 'error'); }
+        });
+
+        window.deleteDevice = async function (id, name) {
+            if (confirm(`Ștergi dispozitivul "${name}"?`)) {
+                try { await fetchApi(`/api/Devices/${id}`, 'DELETE'); loadRooms(); loadAutomations(); showStatus('Șters!'); } catch (e) { showStatus('Eroare', 'error'); }
+            }
+        }
+
+        window.toggleDevice = async function (id, currentState) {
+            try {
+                await fetchApi(`/api/Devices/${id}/control`, 'PUT', { command: !currentState ? 'TurnOn' : 'TurnOff' });
+                loadRooms(); // Refresh rapid ca să prindem starea
+            } catch (e) { showStatus('Eroare control', 'error'); }
+        }
+
+        // ================= AUTOMATIZĂRI =================
+        document.getElementById('addAutomationBtn').addEventListener('click', () => {
+            editingAutoId = null; document.getElementById('autoModalTitle').textContent = 'Regulă Nouă';
+            document.getElementById('autoNameInput').value = '';
+            document.getElementById('autoTimeInput').value = toLocalIsoString(new Date());
+            populateDeviceSelect(); openModal(document.getElementById('automationModal'), document.getElementById('autoNameInput'));
+        });
+
+        window.editAutomation = function (id) {
+            const a = allAutomations.find(x => x.id === id);
+            if (!a) return;
+
+            editingAutoId = id;
+            document.getElementById('autoModalTitle').textContent = 'Editează Regula';
+            document.getElementById('autoNameInput').value = a.name;
+
+            populateDeviceSelect();
+            document.getElementById('autoDeviceSelect').value = a.deviceId;
+            document.getElementById('autoActionSelect').value = a.action;
+
+            // REPARARE PENTRU MOZILLA & ALL BROWSERS
+            if (a.nextRunUtc) {
+                let d = new Date(a.nextRunUtc);
+
+                // Extragem manual componentele pentru a evita orice eroare de formatare
+                let year = d.getFullYear();
+                let month = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                let hours = String(d.getHours()).padStart(2, '0');
+                let minutes = String(d.getMinutes()).padStart(2, '0');
+
+                // Formatul final: YYYY-MM-DDTHH:mm (Exact ce vrea Mozilla)
+                const formattedForInput = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+                document.getElementById('autoTimeInput').value = formattedForInput;
+            }
+
+            openModal(document.getElementById('automationModal'), document.getElementById('autoNameInput'));
+        }
+
+        function populateDeviceSelect() {
+            const sel = document.getElementById('autoDeviceSelect'); sel.innerHTML = '';
+            if (allDevices.length === 0) sel.innerHTML = '<option value="" disabled selected>Niciun dispozitiv disponibil</option>';
+            else allDevices.forEach(d => sel.innerHTML += `<option value="${d.id}">${d.name} (${d.roomName || 'Fără cameră'})</option>`);
+        }
+
+        document.getElementById('saveAutoBtn').addEventListener('click', async () => {
+            const name = document.getElementById('autoNameInput').value.trim();
+            const devId = document.getElementById('autoDeviceSelect').value;
+            const timeInput = document.getElementById('autoTimeInput').value; // Exemplu Mozilla: "2026-03-12T16:30"
+
+            if (!name || !devId || !timeInput) {
+                return showStatus('Completează toate datele!', 'error');
+            }
+
+            try {
+                // Convertim input-ul din browser într-un obiect Date valid
+                const dateObj = new Date(timeInput);
+
+                // Verificăm dacă data e validă (Mozilla poate trimite formate ciudate)
+                if (isNaN(dateObj.getTime())) {
+                    return showStatus('Format dată invalid!', 'error');
+                }
+
+                const payload = {
+                    id: editingAutoId || 0,
+                    name: name,
+                    deviceId: parseInt(devId),
+                    action: document.getElementById('autoActionSelect').value,
+                    value: 0,
+                    nextRunUtc: dateObj.toISOString(), // Trimitem formatul universal ISO la server
+                    enabled: true
+                };
+
+                if (editingAutoId) {
+                    await fetchApi(`/api/Automations/${editingAutoId}`, 'PUT', payload);
+                } else {
+                    await fetchApi('/api/Automations', 'POST', payload);
+                }
+
+                closeModal(document.getElementById('automationModal'));
+                loadAutomations();
+                showStatus('Salvat cu succes! ✨');
+            } catch (e) {
+                console.error("Eroare la salvare:", e);
+                showStatus('Eroare la salvare server', 'error');
+            }
+        });
+        
+
+        window.deleteAutomation = async function (id, name) {
+            if (confirm(`Ștergi definitiv regula "${name}"?`)) {
+                try { await fetchApi(`/api/Automations/${id}`, 'DELETE'); loadAutomations(); showStatus('Ștearsă!'); } catch (e) { showStatus('Eroare', 'error'); }
+            }
+        }
+
+        window.toggleAutoEnabled = async function (id) {
+            const a = allAutomations.find(x => x.id === id); if (!a) return;
+            a.enabled = !a.enabled;
+            try {
+                await fetchApi(`/api/Automations/${id}`, 'PUT', a); loadAutomations();
+            } catch (e) { showStatus('Eroare update', 'error'); }
+        }
+
+        // ================= RANDARE UI =================
+        async function loadRooms() {
+            try {
+                const rooms = await fetchApi('/api/Rooms');
+                allDevices = []; roomsContainer.innerHTML = '';
+                if (!rooms || rooms.length === 0) return roomsContainer.innerHTML = '<div class="col-span-full p-8 text-center text-gray-500 border border-dashed border-gray-700 rounded-xl">Nicio cameră. Adaugă una din butonul de sus.</div>';
+
+                rooms.forEach(r => {
+                    if (r.devices) allDevices.push(...r.devices);
+
+                    let html = `<article class="flex flex-col rounded-2xl bg-gray-800 border border-gray-700 overflow-hidden shadow-lg group">
+                <div class="px-5 py-4 bg-gray-800/80 border-b border-gray-700 flex justify-between items-center">
+                  <div><h3 class="font-semibold text-gray-100">${escapeHtml(r.name)}</h3><p class="text-xs text-gray-400 mt-0.5">${r.deviceCount} dispozitive</p></div>
+                  <div class="flex gap-2">
+                    <button onclick="openDeviceModal(${r.id})" class="w-8 h-8 rounded-full bg-indigo-900/40 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-colors flex justify-center items-center" title="Adaugă dispozitiv"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button>
+                    <button onclick="editRoom(${r.id}, '${escapeHtml(r.name)}')" class="w-8 h-8 rounded-full bg-gray-700 text-gray-400 hover:bg-yellow-500 hover:text-white transition-colors flex justify-center items-center opacity-0 group-hover:opacity-100" title="Editează"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                    <button onclick="deleteRoom(${r.id}, '${escapeHtml(r.name)}')" class="w-8 h-8 rounded-full bg-red-900/40 text-red-400 hover:bg-red-600 hover:text-white transition-colors flex justify-center items-center opacity-0 group-hover:opacity-100" title="Șterge"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                  </div>
+                </div><div class="p-5 space-y-3 flex-1">`;
+
+                    if (!r.devices || r.devices.length === 0) html += '<div class="text-sm text-gray-500 italic text-center py-2">Fără dispozitive</div>';
+                    else r.devices.forEach(d => {
+                        const on = !!d.isOn;
+                        html += `<div class="p-3 rounded-xl transition-all duration-300 flex justify-between items-center border group/dev ${on ? 'bg-gray-800/80 border-yellow-500/30 device-on' : 'bg-gray-900 border-gray-800'}">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full flex justify-center items-center transition-colors ${on ? 'bg-yellow-400 text-gray-900 glow' : 'bg-gray-800 text-gray-500'}">
+                      ${on ? '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>' : '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'}
+                    </div>
+                    <div><div class="font-medium text-sm text-gray-200">${escapeHtml(d.name)}</div><div class="text-xs text-gray-500">${escapeHtml(d.type)}</div></div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button onclick="openDeviceModal(${r.id}, {id:${d.id}, name:'${escapeHtml(d.name)}', type:'${escapeHtml(d.type)}'})" class="text-gray-500 hover:text-yellow-400 opacity-0 group-hover/dev:opacity-100"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                    <button onclick="deleteDevice(${d.id}, '${escapeHtml(d.name)}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover/dev:opacity-100"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                    <div onclick="toggleDevice(${d.id}, ${on})" class="toggle ${on ? 'bg-accent' : 'bg-gray-600'} ml-2"><div class="thumb" style="transform: translateX(${on ? '20px' : '0'})"></div></div>
+                  </div>
+                </div>`;
+                    });
+                    html += `</div></article>`; roomsContainer.innerHTML += html;
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadAutomations() {
+            try {
+                allAutomations = await fetchApi('/api/Automations') || [];
+                automationsContainer.innerHTML = '';
+                if (allAutomations.length === 0) return automationsContainer.innerHTML = '<div class="col-span-full p-6 text-center text-gray-500 border border-dashed border-gray-700 rounded-xl">Nicio regulă definită.</div>';
+
+                allAutomations.forEach(a => {
+                    let uTime = a.nextRunUtc; if (uTime && !uTime.endsWith('Z')) uTime += 'Z';
+                    const nextLocal = uTime ? new Date(uTime).toLocaleString('ro-RO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                    const on = a.enabled;
+
+                    let html = `<div class="p-4 rounded-xl transition-all flex justify-between items-center shadow-lg group/auto border ${on ? 'bg-gray-800 border-emerald-900/30' : 'bg-gray-800/50 border-gray-700 opacity-60'}">
+                <div class="flex items-center">
+                  <div class="w-8 h-8 rounded-full flex justify-center items-center mr-3 ${a.action === 'TurnOn' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-red-900/30 text-red-400'}">
+                    ${a.action === 'TurnOn' ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>' : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>'}
+                  </div>
+                  <div><div class="font-medium text-gray-200">${escapeHtml(a.name)}</div><div class="text-xs text-gray-500 mt-0.5">${a.action === 'TurnOn' ? 'Aprinde' : 'Stinge'} Device #${a.deviceId}</div></div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <div class="text-right hidden sm:block"><div class="text-xs text-gray-400">Moment:</div><div class="text-sm font-medium ${on ? 'text-emerald-400' : 'text-gray-500'}">${escapeHtml(nextLocal)}</div></div>
+                  <div class="flex gap-2">
+                    <button onclick="editAutomation(${a.id})" class="text-gray-500 hover:text-yellow-400 opacity-0 group-hover/auto:opacity-100"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                    <button onclick="deleteAutomation(${a.id}, '${escapeHtml(a.name)}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover/auto:opacity-100"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                    <div onclick="toggleAutoEnabled(${a.id})" class="toggle toggle-sm ${on ? 'bg-emerald-500' : 'bg-gray-600'} ml-1" title="${on ? 'Pune pe pauză' : 'Activează'}"><div class="thumb thumb-sm" style="transform: translateX(${on ? '16px' : '0'})"></div></div>
+                  </div>
+                </div>
+              </div>`;
+                    automationsContainer.innerHTML += html;
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', () => { loadRooms(); loadAutomations(); showStatus('Sincronizat manual', 'info'); });
+
+        // INITIALIZARE & SIGNALR
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRooms();
+            loadAutomations();
+
+            // ================= TIMP REAL (SIGNALR) =================
+            if (typeof signalR !== 'undefined') {
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/smarthome")
+                    .withAutomaticReconnect()
+                    .build();
+
+                // Ascultăm mesajul "UpdateUI" trimis de serverul tău C#
+                connection.on("UpdateUI", () => {
+                    console.log("Semnal primit via SignalR! Baza de date s-a modificat.");
+                    // Reîncărcăm datele DOAR dacă nu scriem ceva într-un modal
+                    if (!isModalOpen) {
+                        loadRooms();
+                        loadAutomations();
+                    }
+                });
+
+                // Pornim conexiunea
+                connection.start()
+                    .then(() => {
+                        showStatus('Conexiune Live Activă 🟢', 'info');
+                        document.getElementById('status').classList.add('text-emerald-400');
+                    })
+                    .catch(err => {
+                        console.warn("SignalR se va conecta după modificarea din Backend (C#).", err);
+                        // Până când implementezi backend-ul cu Copilot, lăsăm timer-ul de backup ca să meargă site-ul:
+                        setInterval(() => { if (!isModalOpen) { loadRooms(); loadAutomations(); } }, 2000);
+                    });
+            }
+        });
+    </script>
 </body>
 </html>

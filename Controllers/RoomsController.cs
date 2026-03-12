@@ -1,11 +1,8 @@
-﻿using System.Linq;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartHomeManager.Data;
 using SmartHomeManager.Dtos;
-using SmartHomeManager.Models;
+using SmartHomeManager.Services;
 
 namespace SmartHomeManager.Controllers
 {
@@ -13,72 +10,25 @@ namespace SmartHomeManager.Controllers
     [ApiController]
     public class RoomsController : ControllerBase
     {
-        private readonly AppDbContext _db;
+        private readonly IRoomService _roomService;
 
-        public RoomsController(AppDbContext db)
+        public RoomsController(IRoomService roomService)
         {
-            _db = db;
+            _roomService = roomService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RoomReadDto>>> GetRooms()
         {
-            // 1. Aducem datele din baza de date simplu, fara Select-uri imbricate
-            var roomsFromDb = await _db.Rooms
-                .AsNoTracking()
-                .Include(r => r.Devices)
-                .ToListAsync();
-
-            // 2. Mapam catre DTO in memorie (astfel SQLite nu se va plange)
-            var roomsDto = roomsFromDb.Select(r => new RoomReadDto
-            {
-                Id = r.Id,
-                Name = r.Name,
-                DeviceCount = r.Devices?.Count ?? 0,
-                Devices = r.Devices?.Select(d => new DeviceReadDto
-                {
-                    Id = d.Id,
-                    Name = d.Nume,
-                    Type = d.Tip,
-                    IsOn = d.EstePornit,
-                    Value = d.Valoare,
-                    RoomId = d.RoomId,
-                    RoomName = r.Name
-                }).ToList() ?? new List<DeviceReadDto>()
-            }).ToList();
-
-            return Ok(roomsDto);
+            var rooms = await _roomService.GetRoomsAsync();
+            return Ok(rooms);
         }
 
         [HttpGet("{id}", Name = "GetRoom")]
         public async Task<ActionResult<RoomReadDto>> GetRoom(int id)
         {
-            // Aducem doar camera cautata simplu
-            var roomFromDb = await _db.Rooms
-                .AsNoTracking()
-                .Include(r => r.Devices)
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (roomFromDb == null) return NotFound();
-
-            // Mapam in memorie
-            var dto = new RoomReadDto
-            {
-                Id = roomFromDb.Id,
-                Name = roomFromDb.Name,
-                DeviceCount = roomFromDb.Devices?.Count ?? 0,
-                Devices = roomFromDb.Devices?.Select(d => new DeviceReadDto
-                {
-                    Id = d.Id,
-                    Name = d.Nume,
-                    Type = d.Tip,
-                    IsOn = d.EstePornit,
-                    Value = d.Valoare,
-                    RoomId = d.RoomId,
-                    RoomName = roomFromDb.Name
-                }).ToList() ?? new List<DeviceReadDto>()
-            };
-
+            var dto = await _roomService.GetRoomAsync(id);
+            if (dto == null) return NotFound();
             return Ok(dto);
         }
 
@@ -87,23 +37,8 @@ namespace SmartHomeManager.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var room = new Room
-            {
-                Name = dto.Name
-            };
-
-            _db.Rooms.Add(room);
-            await _db.SaveChangesAsync();
-
-            var read = new RoomReadDto
-            {
-                Id = room.Id,
-                Name = room.Name,
-                DeviceCount = 0,
-                Devices = new List<DeviceReadDto>()
-            };
-
-            return CreatedAtRoute("GetRoom", new { id = room.Id }, read);
+            var created = await _roomService.CreateRoomAsync(dto);
+            return CreatedAtRoute("GetRoom", new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
@@ -111,25 +46,16 @@ namespace SmartHomeManager.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id);
-            if (room == null) return NotFound();
-
-            room.Name = dto.Name;
-            _db.Rooms.Update(room);
-            await _db.SaveChangesAsync();
-
+            var ok = await _roomService.UpdateRoomAsync(id, dto);
+            if (!ok) return NotFound();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRoom(int id)
         {
-            var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id);
-            if (room == null) return NotFound();
-
-            // Devices' RoomId is configured to SetNull on delete
-            _db.Rooms.Remove(room);
-            await _db.SaveChangesAsync();
+            var ok = await _roomService.DeleteRoomAsync(id);
+            if (!ok) return NotFound();
             return NoContent();
         }
     }

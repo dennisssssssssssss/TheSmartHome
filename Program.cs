@@ -2,71 +2,103 @@
 using SmartHomeManager.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Events;
+using SmartHomeManager.Hubs;
+using SmartHomeManager.Middleware;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Adaugă serviciile în container
+// ---------------------------------------------------------
+// SERILOG CONFIGURATION
+// ---------------------------------------------------------
+// Get the absolute path of the application execution folder
+var basePath = AppDomain.CurrentDomain.BaseDirectory;
+var logFolder = Path.Combine(basePath, "Logs");
+var logFilePath = Path.Combine(logFolder, "log.txt");
+
+// Ensure the Logs directory exists to prevent IO exceptions
+if (!Directory.Exists(logFolder))
+{
+    Directory.CreateDirectory(logFolder);
+}
+
+// Configure Serilog to output to both the Terminal and a persistent File
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, flushToDiskInterval: TimeSpan.FromSeconds(1))
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// ---------------------------------------------------------
+// SERVICES AND DEPENDENCY INJECTION
+// ---------------------------------------------------------
 builder.Services.AddControllers().AddJsonOptions(x =>
     x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 
-// Serviciu pentru controlul dispozitivelor
+// Register repositories for Data Access Layer (Clean Architecture)
+builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, SmartHomeManager.Repositories.RoomRepository>();
+
+// Register services for Business Logic Layer
+builder.Services.AddScoped<SmartHomeManager.Services.IRoomService, SmartHomeManager.Services.RoomService>();
 builder.Services.AddScoped<SmartHomeManager.Services.IDeviceControlService, SmartHomeManager.Services.DeviceControlService>();
 
-// Configurare Bază de Date SQLite
+// Database configuration (SQLite)
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite("Data Source=smarthome.db"));
 
-// Configurare Swagger
+// Real-time communication via SignalR
+builder.Services.AddSignalR();
+
+// Swagger for API Documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Înregistrare serviciu de automatizare (Background Worker)
+// Background service for automation rules execution
 builder.Services.AddHostedService<SmartHomeManager.Services.AutomationSchedulerService>();
 
 var app = builder.Build();
 
-// 2. Configurează Pipeline-ul HTTP (ORDINEA ESTE CRITICĂ AICI)
+// ---------------------------------------------------------
+// HTTP PIPELINE CONFIGURATION
+// ---------------------------------------------------------
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
+// Custom middleware to catch and log all unhandled exceptions globally
+app.UseMiddleware<ExceptionMiddleware>();
 
+// Serve static files (HTML, CSS, JS) from wwwroot folder
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+// Enable Swagger UI (available at /swagger)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "SmartHomeManager API v1");
-    // Lăsăm RoutePrefix gol dacă vrei Swagger pe pagina principală, 
-    // DAR pentru index.html-ul tău, e mai bine să fie:
-    c.RoutePrefix = "swagger";
 });
 
-// ACTIVARE INTERFAȚĂ GRAFICĂ
-// Aceste două rânduri trebuie să fie ÎNAINTE de MapControllers
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SmartHomeHub>("/hubs/smarthome");
 
-// Asigurarea creării bazei de date la pornire
+// ---------------------------------------------------------
+// DATABASE INITIALIZATION
+// ---------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.EnsureCreated(); // Auto-creates database and tables if missing
 }
-app.MapGet("/ui", () =>
-{
-    var drumSpreFisier = System.IO.Path.Combine(AppContext.BaseDirectory, "wwwroot", "index.html");
 
-    if (System.IO.File.Exists(drumSpreFisier))
-    {
-        return Results.Content(System.IO.File.ReadAllText(drumSpreFisier), "text/html");
-    }
+// Log the log path to console on startup for easier debugging
+Console.WriteLine($"[System] Application started. Logs are being saved to: {logFilePath}");
 
-    return Results.NotFound($"Eroare 404: Nu găsesc fișierul! L-am căutat exact la adresa asta: {drumSpreFisier}");
-});
-// 3. Pornirea
 app.Run();
