@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartHomeManager.Data;
+using SmartHomeManager.Models;
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -7,98 +9,156 @@ using Serilog.Events;
 using SmartHomeManager.Hubs;
 using SmartHomeManager.Middleware;
 using System.IO;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// ---------------------------------------------------------
-// SERILOG CONFIGURATION
-// ---------------------------------------------------------
-// Get the absolute path of the application execution folder
-var basePath = AppDomain.CurrentDomain.BaseDirectory;
-var logFolder = Path.Combine(basePath, "Logs");
-var logFilePath = Path.Combine(logFolder, "log.txt");
-
-// Ensure the Logs directory exists to prevent IO exceptions
-if (!Directory.Exists(logFolder))
+try
 {
-    Directory.CreateDirectory(logFolder);
+    // Aici începe execuția reală a aplicației
+    var builder = WebApplication.CreateBuilder(args);
+
+    // ---------------------------------------------------------
+    // THE NUCLEAR OPTION: HARDCODED ABSOLUTE PATH
+    // ---------------------------------------------------------
+    var logFilePath = @"C:\SmartHomeLogs\log.txt";
+
+    Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Debug()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, flushToDiskInterval: TimeSpan.FromSeconds(1))
+        .CreateLogger();
+
+    builder.Host.UseSerilog();
+
+    // ---------------------------------------------------------
+    // JWT AUTHENTICATION CONFIGURATION
+    // ---------------------------------------------------------
+    // Adăugăm un fallback temporar pentru cheie, în caz că nu o găsește în JSON
+    var jwtKey = builder.Configuration["Jwt:Key"] ?? "FallbackSecretKeyThatIsLongEnough123!!!";
+
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "SmartHomeApp",
+                ValidAudience = builder.Configuration["Jwt:Audience"] ?? "SmartHomeUsers",
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            };
+        });
+
+    // ---------------------------------------------------------
+    // SERVICES AND DEPENDENCY INJECTION
+    // ---------------------------------------------------------
+    builder.Services.AddControllers().AddJsonOptions(x =>
+        x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
+
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, SmartHomeManager.Repositories.RoomRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IRoomService, SmartHomeManager.Services.RoomService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IDeviceControlService, SmartHomeManager.Services.DeviceControlService>();
+
+    builder.Services.AddDbContext<AppDbContext>(opt =>
+        opt.UseSqlite("Data Source=smarthome.db"));
+
+    builder.Services.AddSignalR();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+    builder.Services.AddHostedService<SmartHomeManager.Services.AutomationSchedulerService>();
+
+    var app = builder.Build();
+
+    app.UseMiddleware<ExceptionMiddleware>();
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+    app.UseRouting();
+
+    // JWT Middleware
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
+    app.MapHub<SmartHomeHub>("/hubs/smarthome");
+
+    // ---------------------------------------------------------
+    // DATABASE INITIALIZATION
+    // ---------------------------------------------------------
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.EnsureCreated();
+
+        // --------------------------------------------------------------------
+        // DATA SEEDING: create initial Rooms and Devices if none exist.
+        // This ensures a minimal dataset is available on first run.
+        // --------------------------------------------------------------------
+        if (!db.Rooms.Any())
+        {
+            // Create initial rooms
+            var living = new Room { Name = "Living Room" };
+            var bedroom = new Room { Name = "Dormitor" };
+
+            db.Rooms.AddRange(living, bedroom);
+            db.SaveChanges(); // persist rooms so they receive generated Ids
+
+            // Create devices associated with the newly created rooms
+            var device1 = new Device
+            {
+                Nume = "Bec Inteligent",
+                Tip = "Lampa",
+                EstePornit = true,
+                Valoare = 75.0,
+                RoomId = living.Id
+            };
+
+            var device2 = new Device
+            {
+                Nume = "Lumină Ambientală",
+                Tip = "Lampa",
+                EstePornit = false,
+                Valoare = 30.0,
+                RoomId = living.Id
+            };
+
+            var device3 = new Device
+            {
+                Nume = "Termostat",
+                Tip = "Termostat",
+                EstePornit = true,
+                Valoare = 22.5,
+                RoomId = bedroom.Id
+            };
+
+            db.Devices.AddRange(device1, device2, device3);
+            db.SaveChanges();
+
+            Console.WriteLine("[System] Database has been seeded with initial Rooms and Devices.");
+        }
+    }
+
+    Console.WriteLine($"[System] Application started. Logs are being saved to: {logFilePath}");
+
+    app.Run();
 }
-
-// Configure Serilog to output to both the Terminal and a persistent File
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day, flushToDiskInterval: TimeSpan.FromSeconds(1))
-    .CreateLogger();
-
-builder.Host.UseSerilog();
-
-// ---------------------------------------------------------
-// SERVICES AND DEPENDENCY INJECTION
-// ---------------------------------------------------------
-builder.Services.AddControllers().AddJsonOptions(x =>
-    x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
-
-// Register repositories for Data Access Layer (Clean Architecture)
-builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, SmartHomeManager.Repositories.RoomRepository>();
-
-// Register services for Business Logic Layer
-builder.Services.AddScoped<SmartHomeManager.Services.IRoomService, SmartHomeManager.Services.RoomService>();
-builder.Services.AddScoped<SmartHomeManager.Services.IDeviceControlService, SmartHomeManager.Services.DeviceControlService>();
-
-// Database configuration (SQLite)
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlite("Data Source=smarthome.db"));
-
-// Real-time communication via SignalR
-builder.Services.AddSignalR();
-
-// Swagger for API Documentation
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Background service for automation rules execution
-builder.Services.AddHostedService<SmartHomeManager.Services.AutomationSchedulerService>();
-
-var app = builder.Build();
-
-// ---------------------------------------------------------
-// HTTP PIPELINE CONFIGURATION
-// ---------------------------------------------------------
-
-// Custom middleware to catch and log all unhandled exceptions globally
-app.UseMiddleware<ExceptionMiddleware>();
-
-// Serve static files (HTML, CSS, JS) from wwwroot folder
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-// Enable Swagger UI (available at /swagger)
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+catch (Exception ex)
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SmartHomeManager API v1");
-});
-
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-app.MapHub<SmartHomeHub>("/hubs/smarthome");
-
-// ---------------------------------------------------------
-// DATABASE INITIALIZATION
-// ---------------------------------------------------------
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated(); // Auto-creates database and tables if missing
+    // AICI CADE ORICE EROARE FATALĂ DE LA PORNIRE
+    Console.WriteLine("\n=======================================");
+    Console.WriteLine("🔥 EROARE FATALĂ LA PORNIRE:");
+    Console.WriteLine(ex.ToString());
+    Console.WriteLine("=======================================\n");
+    Console.WriteLine("Apasă ENTER pentru a închide fereastra...");
+    Console.ReadLine();
 }
-
-// Log the log path to console on startup for easier debugging
-Console.WriteLine($"[System] Application started. Logs are being saved to: {logFilePath}");
-
-app.Run();
+finally
+{
+    // Ne asigurăm că log-urile sunt scrise pe disc înainte să moară aplicația
+    Log.CloseAndFlush();
+}

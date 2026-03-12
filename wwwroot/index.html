@@ -61,6 +61,21 @@
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen antialiased">
+    <!-- Login overlay: full-screen dark overlay shown when JWT missing or unauthorized -->
+    <div id="loginOverlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4">
+        <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
+            <h3 class="text-lg font-semibold mb-4 text-white text-center">Autentificare — SmartHome</h3>
+            <p id="loginError" class="hidden text-sm text-red-400 mb-3">Eroare autentificare</p>
+            <label class="text-xs text-gray-400">Utilizator</label>
+            <input id="loginUsername" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white mb-3" placeholder="utilizator" />
+            <label class="text-xs text-gray-400">Parolă</label>
+            <input id="loginPassword" type="password" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white mb-4" placeholder="parolă" />
+            <div class="mt-2 flex gap-3 justify-end">
+                <button id="loginBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">Login</button>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-7xl mx-auto p-6">
         <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-gray-800 pb-4">
             <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">SmartHome Dashboard</h1>
@@ -70,6 +85,7 @@
                 <button id="refreshBtn" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors" title="Sincronizare manuală">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
+                <button id="logoutBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:text-white bg-gray-800 hover:bg-red-600 transition-colors" title="Deconectare">Deconectare</button>
                 <div id="status" class="text-sm font-medium text-gray-400 min-w-[120px] text-right"></div>
             </div>
         </header>
@@ -90,6 +106,20 @@
                 </div>
                 <div id="automationsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300"></div>
             </section>
+
+            <section class="mt-14">
+  <div class="flex items-center gap-2 mb-4">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h2l.4-2M7 13h10l1-2 3-6H4.4L7 13z"/>
+    </svg>
+    <h2 class="text-xl font-semibold text-gray-200">Activity Logs</h2>
+  </div>
+
+  <div id="logsContainer" class="bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 max-h-64 overflow-y-auto space-y-2">
+    <!-- Live logs will be prepended here -->
+    <div class="text-center text-gray-500 italic py-6">No logs yet.</div>
+  </div>
+</section>
         </main>
     </div>
 
@@ -167,11 +197,35 @@
             setTimeout(() => statusEl.textContent = '', 3000);
         }
 
+        /**
+         * Wrapper around fetch that automatically attaches JWT from localStorage
+         * and handles 401 by clearing the token and showing the login overlay.
+         */
         async function fetchApi(url, method = 'GET', body = null) {
-            const opts = { method, headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } };
+            const token = localStorage.getItem('jwt_token');
+            const headers = { 'Accept': 'application/json' };
+            if (body) headers['Content-Type'] = 'application/json';
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const opts = { method, headers };
             if (body) opts.body = JSON.stringify(body);
+
             const res = await fetch(url, opts);
-            if (!res.ok) throw new Error(res.statusText);
+
+            // If unauthorized, clear stored token and force login UI
+            if (res.status === 401) {
+                try { localStorage.removeItem('jwt_token'); } catch (e) { /* ignore */ }
+                const overlay = document.getElementById('loginOverlay');
+                if (overlay) overlay.classList.remove('hidden');
+                throw new Error('Unauthorized');
+            }
+
+            if (!res.ok) {
+                // Propagate other errors with status text
+                const txt = res.statusText || `HTTP ${res.status}`;
+                throw new Error(txt);
+            }
+
             return res.status !== 204 ? res.json() : null;
         }
 
@@ -262,20 +316,22 @@
             document.getElementById('autoDeviceSelect').value = a.deviceId;
             document.getElementById('autoActionSelect').value = a.action;
 
-            // REPARARE PENTRU MOZILLA & ALL BROWSERS
+            // FIX PENTRU TOATE BROWSERELE:
             if (a.nextRunUtc) {
-                let d = new Date(a.nextRunUtc);
+                // 1. Ne asigurăm că stringul de la server are 'Z' la final ca să fie recunoscut ca UTC
+                let utcString = a.nextRunUtc;
+                if (!utcString.endsWith('Z')) utcString += 'Z';
 
-                // Extragem manual componentele pentru a evita orice eroare de formatare
+                let d = new Date(utcString);
+
+                // 2. Extragem datele locale exact cum ai făcut, dar folosind data corectată
                 let year = d.getFullYear();
                 let month = String(d.getMonth() + 1).padStart(2, '0');
                 let day = String(d.getDate()).padStart(2, '0');
                 let hours = String(d.getHours()).padStart(2, '0');
                 let minutes = String(d.getMinutes()).padStart(2, '0');
 
-                // Formatul final: YYYY-MM-DDTHH:mm (Exact ce vrea Mozilla)
                 const formattedForInput = `${year}-${month}-${day}T${hours}:${minutes}`;
-
                 document.getElementById('autoTimeInput').value = formattedForInput;
             }
 
@@ -291,17 +347,22 @@
         document.getElementById('saveAutoBtn').addEventListener('click', async () => {
             const name = document.getElementById('autoNameInput').value.trim();
             const devId = document.getElementById('autoDeviceSelect').value;
-            const timeInput = document.getElementById('autoTimeInput').value; // Exemplu Mozilla: "2026-03-12T16:30"
+            const timeInput = document.getElementById('autoTimeInput').value; // Ex: "2026-03-12T16:30"
 
             if (!name || !devId || !timeInput) {
                 return showStatus('Completează toate datele!', 'error');
             }
 
             try {
-                // Convertim input-ul din browser într-un obiect Date valid
-                const dateObj = new Date(timeInput);
+                // FIX PENTRU FIREFOX: Spargem textul și construim data manual
+                // timeInput are forma "YYYY-MM-DDTHH:mm"
+                const [datePart, timePart] = timeInput.split('T');
+                const [year, month, day] = datePart.split('-');
+                const [hours, minutes] = timePart.split(':');
 
-                // Verificăm dacă data e validă (Mozilla poate trimite formate ciudate)
+                // Atenție: lunile în JS încep de la 0 (Ianuarie e 0, Decembrie e 11)
+                const dateObj = new Date(year, month - 1, day, hours, minutes); 
+
                 if (isNaN(dateObj.getTime())) {
                     return showStatus('Format dată invalid!', 'error');
                 }
@@ -312,7 +373,7 @@
                     deviceId: parseInt(devId),
                     action: document.getElementById('autoActionSelect').value,
                     value: 0,
-                    nextRunUtc: dateObj.toISOString(), // Trimitem formatul universal ISO la server
+                    nextRunUtc: dateObj.toISOString(), // Trimitem UTC către C#
                     enabled: true
                 };
 
@@ -420,12 +481,145 @@
             } catch (e) { console.error(e); }
         }
 
+        /* ================= Activity Logs (frontend) ================= */
+
+function appendLogToUI(log) {
+  const ts = log.timestampUtc ? new Date(log.timestampUtc).toLocaleString() : new Date().toLocaleString();
+
+  const el = document.createElement('div');
+  el.className = 'p-3 rounded-lg bg-gray-900/40 border border-gray-700 transition-all';
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(-8px)';
+
+  el.innerHTML = `
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-xs text-gray-400">${escapeHtml(ts)}</div>
+        <div class="font-medium text-gray-100">${escapeHtml(log.action || 'Log')}</div>
+        <div class="text-xs text-gray-400 mt-1">${escapeHtml(log.details || '')}</div>
+      </div>
+      <div class="text-xs text-gray-500">${escapeHtml(new Date(log.timestampUtc || Date.now()).toLocaleTimeString())}</div>
+    </div>
+  `;
+
+  logsContainer.prepend(el);
+
+  requestAnimationFrame(() => {
+    el.style.transition = 'opacity .28s ease, transform .28s ease';
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+  });
+
+  const placeholder = logsContainer.querySelector('.no-logs-placeholder');
+  if (placeholder) placeholder.remove();
+}
+
+async function loadLogs() {
+  try {
+    const logs = await fetchApi('/api/Logs');
+    logsContainer.innerHTML = '';
+    if (!logs || logs.length === 0) {
+      logsContainer.innerHTML = '<div class="no-logs-placeholder text-center text-gray-500 italic py-6">No activity yet.</div>';
+      return;
+    }
+
+    logs.reverse().forEach(l => appendLogToUI(l));
+  } catch (err) {
+    console.error('Failed to load logs', err);
+    logsContainer.innerHTML = '<div class="text-sm text-red-400">Failed to load logs.</div>';
+  }
+}
         document.getElementById('refreshBtn').addEventListener('click', () => { loadRooms(); loadAutomations(); showStatus('Sincronizat manual', 'info'); });
 
         // INITIALIZARE & SIGNALR
         document.addEventListener('DOMContentLoaded', () => {
-            loadRooms();
-            loadAutomations();
+            // Elements for login flow
+            const overlay = document.getElementById('loginOverlay');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            const loginUser = document.getElementById('loginUsername');
+            const loginPass = document.getElementById('loginPassword');
+
+            // Helper: show/hide login error
+            function showLoginError(msg) {
+                if (loginError) {
+                    loginError.textContent = msg || 'Eroare autentificare';
+                    loginError.classList.remove('hidden');
+                }
+            }
+            function hideLoginError() { if (loginError) loginError.classList.add('hidden'); }
+
+            // Login button handler: POST credentials to /api/Auth/login
+            async function doLogin() {
+                hideLoginError();
+                if (!loginBtn) return;
+                loginBtn.disabled = true;
+                try {
+                    const username = loginUser ? loginUser.value.trim() : '';
+                    const password = loginPass ? loginPass.value : '';
+                    if (!username || !password) return showLoginError('Completează utilizator și parolă');
+
+                    const res = await fetch('/api/Auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    if (res.status === 401) {
+                        showLoginError('Credențiale invalide');
+                        return;
+                    }
+
+                    if (!res.ok) {
+                        const txt = await res.text().catch(() => res.statusText || 'Eroare server');
+                        showLoginError(txt || 'Eroare autentificare');
+                        return;
+                    }
+
+                    const data = await res.json().catch(() => null);
+                    // Try common token properties
+                    let newToken = null;
+                    if (!data) newToken = null;
+                    else if (typeof data === 'string') newToken = data;
+                    else newToken = data.token || data.jwt || data.accessToken || data.access_token || data.jwt_token;
+
+                    if (!newToken) {
+                        showLoginError('Token invalid de la server');
+                        return;
+                    }
+
+                    // Persist token and initialize app
+                    localStorage.setItem('jwt_token', newToken);
+                    if (overlay) overlay.classList.add('hidden');
+                    hideLoginError();
+                    // Load data after successful login
+                    await Promise.allSettled([loadRooms(), loadAutomations(), loadLogs()]);
+                } catch (err) {
+                    console.error('Login failed', err);
+                    showLoginError('Eroare la conectare');
+                } finally {
+                    if (loginBtn) loginBtn.disabled = false;
+                }
+            }
+
+            // Wire up login interactions
+            if (loginBtn) loginBtn.addEventListener('click', doLogin);
+            // Allow Enter key to submit from inputs
+            [loginUser, loginPass].forEach(el => {
+                if (!el) return;
+                el.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+            });
+
+            // On startup, check for token and show login overlay if missing
+            const existingToken = localStorage.getItem('jwt_token');
+            if (!existingToken) {
+                if (overlay) overlay.classList.remove('hidden');
+            } else {
+                // Token present — load initial data
+                loadRooms();
+                loadAutomations();
+                loadLogs();
+            }
 
             // ================= TIMP REAL (SIGNALR) =================
             if (typeof signalR !== 'undefined') {
@@ -434,29 +628,46 @@
                     .withAutomaticReconnect()
                     .build();
 
-                // Ascultăm mesajul "UpdateUI" trimis de serverul tău C#
                 connection.on("UpdateUI", () => {
                     console.log("Semnal primit via SignalR! Baza de date s-a modificat.");
-                    // Reîncărcăm datele DOAR dacă nu scriem ceva într-un modal
                     if (!isModalOpen) {
                         loadRooms();
                         loadAutomations();
+                        loadLogs();
                     }
                 });
 
-                // Pornim conexiunea
                 connection.start()
-                    .then(() => {
-                        showStatus('Conexiune Live Activă 🟢', 'info');
-                        document.getElementById('status').classList.add('text-emerald-400');
-                    })
-                    .catch(err => {
-                        console.warn("SignalR se va conecta după modificarea din Backend (C#).", err);
-                        // Până când implementezi backend-ul cu Copilot, lăsăm timer-ul de backup ca să meargă site-ul:
-                        setInterval(() => { if (!isModalOpen) { loadRooms(); loadAutomations(); } }, 2000);
-                    });
+                  .then(() => {
+                      showStatus('Conexiune Live Activă 🟢', 'info');
+                      document.getElementById('status').classList.add('text-emerald-400');
+
+                      // Register real-time log handler so UI receives logs instantly
+                      connection.on("ReceiveLog", (newLog) => {
+                          // Append the incoming log to UI only when user is not editing a modal
+                          if (!isModalOpen) {
+                              appendLogToUI(newLog);
+                          }
+                      });
+                  })
+                  .catch(err => {
+                      console.warn("SignalR connection failed", err);
+                      setInterval(() => { if (!isModalOpen) { loadRooms(); loadAutomations(); loadLogs(); } }, 2000);
+                  });
             }
         });
+
+        // Logout button handler: clear JWT and reload to show login overlay
+        // Keep comments in English as requested
+        (function attachLogout() {
+            const btn = document.getElementById('logoutBtn');
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                try { localStorage.removeItem('jwt_token'); } catch (e) { /* ignore */ }
+                // Force reload so DOMContentLoaded logic runs and shows login overlay
+                window.location.reload();
+            });
+        })();
     </script>
 </body>
 </html>

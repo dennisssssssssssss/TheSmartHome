@@ -3,9 +3,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SmartHomeManager.Dtos;
 using SmartHomeManager.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SmartHomeManager.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class RoomsController : ControllerBase

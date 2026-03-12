@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
@@ -7,9 +8,15 @@ using SmartHomeManager.Dtos;
 using SmartHomeManager.Models;
 using SmartHomeManager.Services;
 using SmartHomeManager.Hubs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SmartHomeManager.Controllers
 {
+    /// <summary>
+    /// Devices API controller. Maps Romanian EF model fields to English DTOs for the frontend.
+    /// All mutating operations create an ActivityLog and broadcast real-time notifications.
+    /// </summary>
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class DevicesController : ControllerBase
@@ -17,7 +24,7 @@ namespace SmartHomeManager.Controllers
         private readonly AppDbContext _db;
         private readonly IDeviceControlService _deviceControl;
         private readonly IHubContext<SmartHomeHub> _hubContext;
-        private readonly IRoomService _roomService; // Added for Clean Architecture
+        private readonly IRoomService _roomService; // kept for compatibility with application services
 
         public DevicesController(
             AppDbContext db,
@@ -31,18 +38,19 @@ namespace SmartHomeManager.Controllers
             _roomService = roomService;
         }
 
-        // GET: api/Devices
-        // Return a list of DeviceReadDto (English property names) mapped from the Romanian EF model.
+        /// <summary>
+        /// GET: api/Devices
+        /// Return a list of DeviceReadDto mapped from Romanian model properties.
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DeviceReadDto>>> GetDevices()
         {
-            // Fetching devices with room details included
             var devices = await _db.Devices
                 .AsNoTracking()
                 .Include(d => d.Room)
                 .ToListAsync();
 
-            // Explicit mapping from Romanian model properties -> English DTO properties
+            // Map Romanian model -> English DTO explicitly to avoid property mismatch
             var dtos = devices.Select(d => new DeviceReadDto
             {
                 Id = d.Id,
@@ -57,8 +65,10 @@ namespace SmartHomeManager.Controllers
             return Ok(dtos);
         }
 
-        // GET: api/Devices/{id}
-        // Single-device read endpoint — returns DeviceReadDto mapped from model.
+        /// <summary>
+        /// GET: api/Devices/{id}
+        /// Return single device mapped to DeviceReadDto.
+        /// </summary>
         [HttpGet("{id}", Name = "GetDevice")]
         public async Task<ActionResult<DeviceReadDto>> GetDevice(int id)
         {
@@ -83,14 +93,17 @@ namespace SmartHomeManager.Controllers
             return Ok(dto);
         }
 
-        // POST: api/Devices
-        // Create a new device. Accepts DeviceCreateDto (English names) and returns DeviceReadDto.
+        /// <summary>
+        /// POST: api/Devices
+        /// Create a new device. Accepts DeviceCreateDto (English props), maps to Romanian model for persistence.
+        /// Creates an ActivityLog and broadcasts it to connected clients.
+        /// </summary>
         [HttpPost]
         public async Task<ActionResult<DeviceReadDto>> CreateDevice([FromBody] DeviceCreateDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            // Map incoming English-named DTO -> Romanian-named model for EF
+            // Map DTO -> EF model (Romanian property names)
             var device = new Device
             {
                 Nume = dto.Name,
@@ -103,7 +116,7 @@ namespace SmartHomeManager.Controllers
             _db.Devices.Add(device);
             await _db.SaveChangesAsync();
 
-            // Map saved model back to English DTO for the client
+            // Map saved entity -> English read DTO for the client
             var readDto = new DeviceReadDto
             {
                 Id = device.Id,
@@ -115,15 +128,29 @@ namespace SmartHomeManager.Controllers
                 RoomName = (await _db.Rooms.FindAsync(device.RoomId))?.Name
             };
 
-            // Notify UI via SignalR so front-end refreshes in real-time
+            // Create activity log entry describing the creation
+            var newLog = new ActivityLog
+            {
+                TimestampUtc = System.DateTime.UtcNow,
+                Action = "DeviceCreated",
+                Details = $"DeviceId={device.Id}; Name='{device.Nume}'; RoomId={device.RoomId}"
+            };
+
+            _db.ActivityLogs.Add(newLog);
+            await _db.SaveChangesAsync();
+
+            // Notify clients in real-time: UI refresh and explicit log delivery
             await _hubContext.Clients.All.SendAsync("UpdateUI");
+            await _hubContext.Clients.All.SendAsync("ReceiveLog", newLog);
 
             return CreatedAtAction(nameof(GetDevice), new { id = device.Id }, readDto);
         }
 
-        // PUT: api/Devices/{id}
-        // Update basic device metadata (name/type/room). Accepts DeviceCreateDto (English names).
-        // Returns the updated DeviceReadDto mapped from the EF model.
+        /// <summary>
+        /// PUT: api/Devices/{id}
+        /// Update device metadata (name/type/room/isOn/value).
+        /// Returns updated DeviceReadDto mapped from EF model.
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateDevice(int id, [FromBody] DeviceCreateDto dto)
         {
@@ -132,7 +159,7 @@ namespace SmartHomeManager.Controllers
             var existingDevice = await _db.Devices.FindAsync(id);
             if (existingDevice == null) return NotFound();
 
-            // Map English DTO -> Romanian model properties
+            // Map DTO fields into EF model (Romanian properties)
             existingDevice.Nume = dto.Name;
             existingDevice.Tip = dto.Type;
             existingDevice.EstePornit = dto.IsOn;
@@ -141,7 +168,22 @@ namespace SmartHomeManager.Controllers
 
             await _db.SaveChangesAsync();
 
-            // Prepare DTO to return to client (ensures consistent English property names)
+            // Create activity log entry describing the update
+            var updateLog = new ActivityLog
+            {
+                TimestampUtc = System.DateTime.UtcNow,
+                Action = "DeviceUpdated",
+                Details = $"DeviceId={existingDevice.Id}; Name='{existingDevice.Nume}'; IsOn={existingDevice.EstePornit}; RoomId={existingDevice.RoomId}"
+            };
+
+            _db.ActivityLogs.Add(updateLog);
+            await _db.SaveChangesAsync();
+
+            // Notify clients in real-time
+            await _hubContext.Clients.All.SendAsync("UpdateUI");
+            await _hubContext.Clients.All.SendAsync("ReceiveLog", updateLog);
+
+            // Return the updated DTO to the caller
             var readDto = new DeviceReadDto
             {
                 Id = existingDevice.Id,
@@ -153,14 +195,14 @@ namespace SmartHomeManager.Controllers
                 RoomName = (await _db.Rooms.FindAsync(existingDevice.RoomId))?.Name
             };
 
-            // Notify UI via SignalR
-            await _hubContext.Clients.All.SendAsync("UpdateUI");
-
             return Ok(readDto);
         }
 
-        // PUT: api/Devices/{id}/control
-        // Toggle or set device state using DeviceControlDto (e.g. TurnOn/TurnOff/SetValue).
+        /// <summary>
+        /// PUT: api/Devices/{id}/control
+        /// Toggle or set device state using DeviceControlDto (e.g. TurnOn/TurnOff/SetValue).
+        /// Will create an ActivityLog describing the result and broadcast it.
+        /// </summary>
         [HttpPut("{id}/control")]
         public async Task<IActionResult> ControlDevice(int id, [FromBody] DeviceControlDto command)
         {
@@ -169,19 +211,63 @@ namespace SmartHomeManager.Controllers
             var device = await _db.Devices.FirstOrDefaultAsync(d => d.Id == id);
             if (device == null) return NotFound();
 
-            // Business logic for device toggling and energy tracking
+            // Execute command (service handles energy usage logging)
             await _deviceControl.ExecuteCommandAsync(device, command);
+
+            // Persist device changes and any energy usage rows added by the service
             await _db.SaveChangesAsync();
 
-            // Immediate UI update via SignalR
-            try { await _hubContext.Clients.All.SendAsync("UpdateUI"); }
-            catch { /* Ignore SignalR errors to avoid blocking the main logic */ }
+            // Build human readable details for the activity log
+            var action = command.Command ?? "Unknown";
+            string details;
+            if (action.Equals("TurnOn", System.StringComparison.OrdinalIgnoreCase) ||
+                action.Equals("On", System.StringComparison.OrdinalIgnoreCase))
+            {
+                details = $"DeviceId={device.Id}; Name='{device.Nume}' turned ON";
+            }
+            else if (action.Equals("TurnOff", System.StringComparison.OrdinalIgnoreCase) ||
+                     action.Equals("Off", System.StringComparison.OrdinalIgnoreCase))
+            {
+                details = $"DeviceId={device.Id}; Name='{device.Nume}' turned OFF";
+            }
+            else if (action.Equals("SetValue", System.StringComparison.OrdinalIgnoreCase) && command.Value.HasValue)
+            {
+                details = $"DeviceId={device.Id}; Name='{device.Nume}' set value {command.Value.Value}";
+            }
+            else
+            {
+                details = $"DeviceId={device.Id}; Name='{device.Nume}' action={action}";
+            }
+
+            // Persist activity log
+            var log = new ActivityLog
+            {
+                TimestampUtc = System.DateTime.UtcNow,
+                Action = $"Control:{action}",
+                Details = details
+            };
+
+            _db.ActivityLogs.Add(log);
+            await _db.SaveChangesAsync();
+
+            // Notify clients: UI refresh and deliver the log entry
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("UpdateUI");
+                await _hubContext.Clients.All.SendAsync("ReceiveLog", log);
+            }
+            catch
+            {
+                // Failures notifying clients should not prevent API success
+            }
 
             return NoContent();
         }
 
-        // DELETE: api/Devices/{id}
-        // Remove a device and notify clients.
+        /// <summary>
+        /// DELETE: api/Devices/{id}
+        /// Remove device and publish ActivityLog.
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDevice(int id)
         {
@@ -191,7 +277,18 @@ namespace SmartHomeManager.Controllers
             _db.Devices.Remove(device);
             await _db.SaveChangesAsync();
 
+            var delLog = new ActivityLog
+            {
+                TimestampUtc = System.DateTime.UtcNow,
+                Action = "DeviceDeleted",
+                Details = $"DeviceId={device.Id}; Name='{device.Nume}'"
+            };
+
+            _db.ActivityLogs.Add(delLog);
+            await _db.SaveChangesAsync();
+
             await _hubContext.Clients.All.SendAsync("UpdateUI");
+            await _hubContext.Clients.All.SendAsync("ReceiveLog", delLog);
 
             return NoContent();
         }

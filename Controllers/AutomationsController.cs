@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartHomeManager.Data;
 using SmartHomeManager.Models;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace SmartHomeManager.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class AutomationsController : ControllerBase
