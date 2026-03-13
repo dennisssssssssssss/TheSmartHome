@@ -74,6 +74,12 @@ try
     builder.Services.AddHostedService<SmartHomeManager.Services.AutomationSchedulerService>();
 
     var app = builder.Build();
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SmartHomeManager.Data.AppDbContext>();
+        // Această linie forțează actualizarea bazei de date la fiecare pornire a serverului
+        db.Database.Migrate();
+    }
 
     app.UseMiddleware<ExceptionMiddleware>();
     app.UseDefaultFiles();
@@ -93,7 +99,9 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.EnsureCreated();
+        // Use migrations to ensure the database schema matches the current EF model.
+        // EnsureCreated does not apply migrations and can leave the schema out of sync.
+        db.Database.Migrate();
 
         // --------------------------------------------------------------------
         // DATA SEEDING: create initial Rooms and Devices if none exist.

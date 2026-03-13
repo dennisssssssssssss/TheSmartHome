@@ -69,7 +69,9 @@ namespace SmartHomeManager.Services
                         IsOn = d.EstePornit,
                         Value = d.Valoare,
                         RoomId = d.RoomId,
-                        RoomName = r.Name
+                        RoomName = r.Name,
+                        SensorValue = d.SensorValue,
+                        SensorUnit = d.SensorUnit
                     }).ToList()
             };
         }

@@ -10,6 +10,9 @@ using SmartHomeManager.Services;
 using SmartHomeManager.Hubs;
 using Microsoft.AspNetCore.Authorization;
 
+// Alias the DTO type to avoid ambiguity with a model type having the same name
+using DtoDeviceRead = SmartHomeManager.Dtos.DeviceReadDto;
+
 namespace SmartHomeManager.Controllers
 {
     /// <summary>
@@ -43,15 +46,14 @@ namespace SmartHomeManager.Controllers
         /// Return a list of DeviceReadDto mapped from Romanian model properties.
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DeviceReadDto>>> GetDevices()
+        public async Task<ActionResult<IEnumerable<DtoDeviceRead>>> GetDevices()
         {
             var devices = await _db.Devices
                 .AsNoTracking()
                 .Include(d => d.Room)
                 .ToListAsync();
 
-            // Map Romanian model -> English DTO explicitly to avoid property mismatch
-            var dtos = devices.Select(d => new DeviceReadDto
+            var dtos = devices.Select(d => new DtoDeviceRead
             {
                 Id = d.Id,
                 Name = d.Nume,
@@ -59,7 +61,9 @@ namespace SmartHomeManager.Controllers
                 IsOn = d.EstePornit,
                 Value = d.Valoare,
                 RoomId = d.RoomId,
-                RoomName = d.Room?.Name
+                RoomName = d.Room?.Name,
+                SensorValue = d.SensorValue,
+                SensorUnit = d.SensorUnit
             }).ToList();
 
             return Ok(dtos);
@@ -70,7 +74,7 @@ namespace SmartHomeManager.Controllers
         /// Return single device mapped to DeviceReadDto.
         /// </summary>
         [HttpGet("{id}", Name = "GetDevice")]
-        public async Task<ActionResult<DeviceReadDto>> GetDevice(int id)
+        public async Task<ActionResult<DtoDeviceRead>> GetDevice(int id)
         {
             var d = await _db.Devices
                 .AsNoTracking()
@@ -79,7 +83,7 @@ namespace SmartHomeManager.Controllers
 
             if (d == null) return NotFound();
 
-            var dto = new DeviceReadDto
+            var dto = new DtoDeviceRead
             {
                 Id = d.Id,
                 Name = d.Nume,
@@ -87,7 +91,9 @@ namespace SmartHomeManager.Controllers
                 IsOn = d.EstePornit,
                 Value = d.Valoare,
                 RoomId = d.RoomId,
-                RoomName = d.Room?.Name
+                RoomName = d.Room?.Name,
+                SensorValue = d.SensorValue,
+                SensorUnit = d.SensorUnit
             };
 
             return Ok(dto);
@@ -99,7 +105,7 @@ namespace SmartHomeManager.Controllers
         /// Creates an ActivityLog and broadcasts it to connected clients.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<DeviceReadDto>> CreateDevice([FromBody] DeviceCreateDto dto)
+        public async Task<ActionResult<DtoDeviceRead>> CreateDevice([FromBody] DeviceCreateDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -117,7 +123,7 @@ namespace SmartHomeManager.Controllers
             await _db.SaveChangesAsync();
 
             // Map saved entity -> English read DTO for the client
-            var readDto = new DeviceReadDto
+            var readDto = new DtoDeviceRead
             {
                 Id = device.Id,
                 Name = device.Nume,
@@ -125,7 +131,9 @@ namespace SmartHomeManager.Controllers
                 IsOn = device.EstePornit,
                 Value = device.Valoare,
                 RoomId = device.RoomId,
-                RoomName = (await _db.Rooms.FindAsync(device.RoomId))?.Name
+                RoomName = (await _db.Rooms.FindAsync(device.RoomId))?.Name,
+                SensorValue = device.SensorValue,
+                SensorUnit = device.SensorUnit
             };
 
             // Create activity log entry describing the creation
@@ -184,7 +192,7 @@ namespace SmartHomeManager.Controllers
             await _hubContext.Clients.All.SendAsync("ReceiveLog", updateLog);
 
             // Return the updated DTO to the caller
-            var readDto = new DeviceReadDto
+            var readDto = new DtoDeviceRead
             {
                 Id = existingDevice.Id,
                 Name = existingDevice.Nume,
@@ -192,7 +200,9 @@ namespace SmartHomeManager.Controllers
                 IsOn = existingDevice.EstePornit,
                 Value = existingDevice.Valoare,
                 RoomId = existingDevice.RoomId,
-                RoomName = (await _db.Rooms.FindAsync(existingDevice.RoomId))?.Name
+                RoomName = (await _db.Rooms.FindAsync(existingDevice.RoomId))?.Name,
+                SensorValue = existingDevice.SensorValue,
+                SensorUnit = existingDevice.SensorUnit
             };
 
             return Ok(readDto);

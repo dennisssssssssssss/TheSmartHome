@@ -29,6 +29,10 @@ namespace SmartHomeManager.Dtos
         public double Value { get; set; }
         public int? RoomId { get; set; }
         public string? RoomName { get; set; }
+
+        // Newly added sensor properties
+        public double? SensorValue { get; set; }
+        public string? SensorUnit { get; set; }
     }
 
     public class DeviceControlDto
@@ -43,5 +47,4 @@ namespace SmartHomeManager.Dtos
 
         public string StatusText => IsOn ? "Pornit" : "Oprit";
     }
-     
-   }
+}

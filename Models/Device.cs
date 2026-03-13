@@ -4,10 +4,14 @@
     {
         public int Id { get; set; }
         public string Nume { get; set; } = string.Empty;
-        public string Tip { get; set; } = string.Empty; // ex: Lampa, Termostat, etc.
+        public string Tip { get; set; } = string.Empty;
         public bool EstePornit { get; set; }
-        public double Valoare { get; set; } // ex: temp pentru termostat, luminozitate pentru lampa.
-        public int? RoomId { get; set; } // Foreign key to Room
+        public double Valoare { get; set; }
+
+        public double? SensorValue { get; set; }
+        public string? SensorUnit { get; set; }
+
+        public int? RoomId { get; set; }
         public Room? Room { get; set; }
     }
 }

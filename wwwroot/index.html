@@ -6,7 +6,6 @@
     <title>SmartHome Manager — Dashboard Live</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
     <script>
@@ -24,6 +23,7 @@
             filter: drop-shadow(0 6px 18px rgba(251,191,36,0.28));
         }
 
+        /* Custom UI Toggles */
         .toggle {
             width: 44px;
             height: 24px;
@@ -61,18 +61,22 @@
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen antialiased">
-    <!-- Login overlay: full-screen dark overlay shown when JWT missing or unauthorized -->
-    <div id="loginOverlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4">
-        <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
-            <h3 class="text-lg font-semibold mb-4 text-white text-center">Autentificare — SmartHome</h3>
-            <p id="loginError" class="hidden text-sm text-red-400 mb-3">Eroare autentificare</p>
-            <label class="text-xs text-gray-400">Utilizator</label>
-            <input id="loginUsername" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white mb-3" placeholder="utilizator" />
-            <label class="text-xs text-gray-400">Parolă</label>
-            <input id="loginPassword" type="password" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white mb-4" placeholder="parolă" />
-            <div class="mt-2 flex gap-3 justify-end">
-                <button id="loginBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">Login</button>
+
+    <div id="loginOverlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="relative bg-gray-800 rounded-xl p-8 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
+            <div class="flex justify-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
             </div>
+            <h3 class="text-2xl font-bold mb-6 text-white text-center">SmartHome Login</h3>
+            <p id="loginError" class="hidden text-sm text-center text-red-400 mb-4 bg-red-900/20 py-2 rounded">Invalid credentials</p>
+
+            <label class="text-xs text-gray-400 uppercase tracking-wider">Username</label>
+            <input id="loginUsername" class="w-full px-4 py-3 mt-1 mb-4 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white transition-colors" placeholder="admin" />
+
+            <label class="text-xs text-gray-400 uppercase tracking-wider">Password</label>
+            <input id="loginPassword" type="password" class="w-full px-4 py-3 mt-1 mb-6 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white transition-colors" placeholder="••••••••" />
+
+            <button id="loginBtn" class="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg shadow-indigo-500/30 active:scale-[0.98]">Sign In</button>
         </div>
     </div>
 
@@ -85,12 +89,20 @@
                 <button id="refreshBtn" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors" title="Sincronizare manuală">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
-                <button id="logoutBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:text-white bg-gray-800 hover:bg-red-600 transition-colors" title="Deconectare">Deconectare</button>
+                <button id="logoutBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-red-400 border border-red-900/50 bg-gray-800 hover:bg-red-600 hover:text-white transition-colors" title="Deconectare">Logout</button>
                 <div id="status" class="text-sm font-medium text-gray-400 min-w-[120px] text-right"></div>
             </div>
         </header>
 
         <main>
+            <section class="mb-10">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <h2 class="text-xl font-semibold text-gray-200">Senzori Mediu (Neasignați)</h2>
+                </div>
+                <div id="sensorsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </section>
+
             <section>
                 <div class="flex items-center gap-2 mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -107,19 +119,15 @@
                 <div id="automationsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300"></div>
             </section>
 
-            <section class="mt-14">
-  <div class="flex items-center gap-2 mb-4">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h2l.4-2M7 13h10l1-2 3-6H4.4L7 13z"/>
-    </svg>
-    <h2 class="text-xl font-semibold text-gray-200">Activity Logs</h2>
-  </div>
-
-  <div id="logsContainer" class="bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 max-h-64 overflow-y-auto space-y-2">
-    <!-- Live logs will be prepended here -->
-    <div class="text-center text-gray-500 italic py-6">No logs yet.</div>
-  </div>
-</section>
+            <section class="mt-14 mb-10">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h2l.4-2M7 13h10l1-2 3-6H4.4L7 13z" /></svg>
+                    <h2 class="text-xl font-semibold text-gray-200">Activity Logs</h2>
+                </div>
+                <div id="logsContainer" class="bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 max-h-64 overflow-y-auto space-y-2">
+                    <div class="text-center text-gray-500 italic py-6">No logs yet.</div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -127,7 +135,7 @@
         <div class="modal-backdrop absolute inset-0 rounded-xl"></div>
         <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
             <h3 id="roomModalTitle" class="text-lg font-semibold mb-4 text-white">Cameră Nouă</h3>
-            <input id="roomNameInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white" placeholder="Numele camerei (ex: Dormitor)" />
+            <input id="roomNameInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white" placeholder="Nume (ex: Dormitor)" />
             <div class="mt-6 flex gap-3 justify-end">
                 <button onclick="closeModal(roomModal)" class="px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">Anulează</button>
                 <button id="saveRoomBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">Salvează</button>
@@ -140,7 +148,7 @@
         <div class="relative bg-gray-800 rounded-xl p-6 w-full max-w-sm z-10 border border-gray-700 shadow-2xl">
             <h3 id="deviceModalTitle" class="text-lg font-semibold mb-4 text-white">Dispozitiv Nou</h3>
             <input id="deviceNameInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white mb-4" placeholder="Nume (ex: Veioză colț)" />
-            <input id="deviceTypeInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white" placeholder="Tip (ex: Lumina, TV)" />
+            <input id="deviceTypeInput" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-600 focus:border-indigo-500 outline-none text-white" placeholder="Tip (ex: Bec, TV)" />
             <div class="mt-6 flex gap-3 justify-end">
                 <button onclick="closeModal(deviceModal)" class="px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">Anulează</button>
                 <button id="saveDeviceBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors">Salvează</button>
@@ -175,31 +183,35 @@
     </div>
 
     <script>
+        // DOM Elements
         const statusEl = document.getElementById('status');
         const roomsContainer = document.getElementById('roomsContainer');
         const automationsContainer = document.getElementById('automationsContainer');
+        const logsContainer = document.getElementById('logsContainer');
 
-        // Globals pt Editare
+        // State Variables
         let allDevices = [];
         let allAutomations = [];
         let editingRoomId = null;
         let editingDeviceId = null;
         let editingAutoId = null;
         let targetRoomIdForDevice = null;
-
-        // System flag pt Live Refresh
         let isModalOpen = false;
 
-        // Utilitare API & UI
+        // Utilities
         function showStatus(text, type = 'info') {
             statusEl.textContent = text;
             statusEl.className = type === 'error' ? 'text-red-400 text-sm font-medium animate-pulse' : 'text-emerald-400 text-sm font-medium';
             setTimeout(() => statusEl.textContent = '', 3000);
         }
 
+        function openModal(modalEl, focusEl) { isModalOpen = true; modalEl.classList.remove('hidden'); if (focusEl) focusEl.focus(); }
+        function closeModal(modalEl) { isModalOpen = false; modalEl.classList.add('hidden'); }
+        function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); }
+        function toLocalIsoString(date) { const d = new Date(date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+
         /**
-         * Wrapper around fetch that automatically attaches JWT from localStorage
-         * and handles 401 by clearing the token and showing the login overlay.
+         * Fetch wrapper handling JWT Authorization
          */
         async function fetchApi(url, method = 'GET', body = null) {
             const token = localStorage.getItem('jwt_token');
@@ -212,29 +224,18 @@
 
             const res = await fetch(url, opts);
 
-            // If unauthorized, clear stored token and force login UI
             if (res.status === 401) {
-                try { localStorage.removeItem('jwt_token'); } catch (e) { /* ignore */ }
+                localStorage.removeItem('jwt_token');
                 const overlay = document.getElementById('loginOverlay');
                 if (overlay) overlay.classList.remove('hidden');
                 throw new Error('Unauthorized');
             }
 
-            if (!res.ok) {
-                // Propagate other errors with status text
-                const txt = res.statusText || `HTTP ${res.status}`;
-                throw new Error(txt);
-            }
-
+            if (!res.ok) throw new Error(res.statusText || `HTTP ${res.status}`);
             return res.status !== 204 ? res.json() : null;
         }
 
-        function openModal(modalEl, focusEl) { isModalOpen = true; modalEl.classList.remove('hidden'); if (focusEl) focusEl.focus(); }
-        function closeModal(modalEl) { isModalOpen = false; modalEl.classList.add('hidden'); }
-        function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); }
-        function toLocalIsoString(date) { const d = new Date(date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
-
-        // ================= CAMERE =================
+        // ================= ROOMS LOGIC =================
         document.getElementById('addRoomBtn').addEventListener('click', () => {
             editingRoomId = null; document.getElementById('roomModalTitle').textContent = 'Cameră Nouă';
             document.getElementById('roomNameInput').value = ''; openModal(document.getElementById('roomModal'), document.getElementById('roomNameInput'));
@@ -261,7 +262,7 @@
             }
         }
 
-        // ================= DISPOZITIVE =================
+        // ================= DEVICES LOGIC =================
         window.openDeviceModal = function (roomId, device = null) {
             targetRoomIdForDevice = roomId;
             editingDeviceId = device ? device.id : null;
@@ -289,14 +290,18 @@
             }
         }
 
-        window.toggleDevice = async function (id, currentState) {
+        window.toggleDevice = async function (id, isCheckedInUI) {
             try {
-                await fetchApi(`/api/Devices/${id}/control`, 'PUT', { command: !currentState ? 'TurnOn' : 'TurnOff' });
-                loadRooms(); // Refresh rapid ca să prindem starea
-            } catch (e) { showStatus('Eroare control', 'error'); }
+                const cmd = isCheckedInUI ? 'TurnOn' : 'TurnOff';
+                await fetchApi(`/api/Devices/${id}/control`, 'PUT', { command: cmd });
+                loadRooms();
+            } catch (e) {
+                showStatus('Eroare control', 'error');
+                loadRooms();
+            }
         }
 
-        // ================= AUTOMATIZĂRI =================
+        // ================= AUTOMATIONS LOGIC =================
         document.getElementById('addAutomationBtn').addEventListener('click', () => {
             editingAutoId = null; document.getElementById('autoModalTitle').textContent = 'Regulă Nouă';
             document.getElementById('autoNameInput').value = '';
@@ -311,30 +316,21 @@
             editingAutoId = id;
             document.getElementById('autoModalTitle').textContent = 'Editează Regula';
             document.getElementById('autoNameInput').value = a.name;
-
             populateDeviceSelect();
             document.getElementById('autoDeviceSelect').value = a.deviceId;
             document.getElementById('autoActionSelect').value = a.action;
 
-            // FIX PENTRU TOATE BROWSERELE:
             if (a.nextRunUtc) {
-                // 1. Ne asigurăm că stringul de la server are 'Z' la final ca să fie recunoscut ca UTC
                 let utcString = a.nextRunUtc;
                 if (!utcString.endsWith('Z')) utcString += 'Z';
-
                 let d = new Date(utcString);
-
-                // 2. Extragem datele locale exact cum ai făcut, dar folosind data corectată
                 let year = d.getFullYear();
                 let month = String(d.getMonth() + 1).padStart(2, '0');
                 let day = String(d.getDate()).padStart(2, '0');
                 let hours = String(d.getHours()).padStart(2, '0');
                 let minutes = String(d.getMinutes()).padStart(2, '0');
-
-                const formattedForInput = `${year}-${month}-${day}T${hours}:${minutes}`;
-                document.getElementById('autoTimeInput').value = formattedForInput;
+                document.getElementById('autoTimeInput').value = `${year}-${month}-${day}T${hours}:${minutes}`;
             }
-
             openModal(document.getElementById('automationModal'), document.getElementById('autoNameInput'));
         }
 
@@ -347,25 +343,17 @@
         document.getElementById('saveAutoBtn').addEventListener('click', async () => {
             const name = document.getElementById('autoNameInput').value.trim();
             const devId = document.getElementById('autoDeviceSelect').value;
-            const timeInput = document.getElementById('autoTimeInput').value; // Ex: "2026-03-12T16:30"
+            const timeInput = document.getElementById('autoTimeInput').value;
 
-            if (!name || !devId || !timeInput) {
-                return showStatus('Completează toate datele!', 'error');
-            }
+            if (!name || !devId || !timeInput) return showStatus('Completează toate datele!', 'error');
 
             try {
-                // FIX PENTRU FIREFOX: Spargem textul și construim data manual
-                // timeInput are forma "YYYY-MM-DDTHH:mm"
                 const [datePart, timePart] = timeInput.split('T');
                 const [year, month, day] = datePart.split('-');
                 const [hours, minutes] = timePart.split(':');
+                const dateObj = new Date(year, month - 1, day, hours, minutes);
 
-                // Atenție: lunile în JS încep de la 0 (Ianuarie e 0, Decembrie e 11)
-                const dateObj = new Date(year, month - 1, day, hours, minutes); 
-
-                if (isNaN(dateObj.getTime())) {
-                    return showStatus('Format dată invalid!', 'error');
-                }
+                if (isNaN(dateObj.getTime())) return showStatus('Format dată invalid!', 'error');
 
                 const payload = {
                     id: editingAutoId || 0,
@@ -373,15 +361,12 @@
                     deviceId: parseInt(devId),
                     action: document.getElementById('autoActionSelect').value,
                     value: 0,
-                    nextRunUtc: dateObj.toISOString(), // Trimitem UTC către C#
+                    nextRunUtc: dateObj.toISOString(),
                     enabled: true
                 };
 
-                if (editingAutoId) {
-                    await fetchApi(`/api/Automations/${editingAutoId}`, 'PUT', payload);
-                } else {
-                    await fetchApi('/api/Automations', 'POST', payload);
-                }
+                if (editingAutoId) await fetchApi(`/api/Automations/${editingAutoId}`, 'PUT', payload);
+                else await fetchApi('/api/Automations', 'POST', payload);
 
                 closeModal(document.getElementById('automationModal'));
                 loadAutomations();
@@ -391,7 +376,6 @@
                 showStatus('Eroare la salvare server', 'error');
             }
         });
-        
 
         window.deleteAutomation = async function (id, name) {
             if (confirm(`Ștergi definitiv regula "${name}"?`)) {
@@ -402,51 +386,122 @@
         window.toggleAutoEnabled = async function (id) {
             const a = allAutomations.find(x => x.id === id); if (!a) return;
             a.enabled = !a.enabled;
-            try {
-                await fetchApi(`/api/Automations/${id}`, 'PUT', a); loadAutomations();
-            } catch (e) { showStatus('Eroare update', 'error'); }
+            try { await fetchApi(`/api/Automations/${id}`, 'PUT', a); loadAutomations(); } catch (e) { showStatus('Eroare update', 'error'); }
         }
 
-        // ================= RANDARE UI =================
+        // ================= RENDERING LOGIC =================
         async function loadRooms() {
             try {
+                // 1. Randăm Senzorii Neasignați
+                const allDevicesFromApi = await fetchApi('/api/Devices') || [];
+                // Căutăm dispozitivele care nu au cameră (roomId === null)
+                const unassignedSensors = allDevicesFromApi.filter(d => d.roomId === null && (d.type === 'Sensor' || d.Tip === 'Sensor'));
+
+                const sensorsContainer = document.getElementById('sensorsContainer');
+                if (sensorsContainer) {
+                    sensorsContainer.innerHTML = '';
+
+                    if (unassignedSensors.length > 0) {
+                        unassignedSensors.forEach(s => {
+                            const val = (s.sensorValue !== null && s.sensorValue !== undefined) ? s.sensorValue.toFixed(1) : '--';
+                            const unit = s.sensorUnit || '';
+                            const name = s.name || s.nume || 'Senzor';
+
+                            sensorsContainer.innerHTML += `
+                                <div class="relative overflow-hidden rounded-2xl bg-gray-800/40 backdrop-blur-xl border border-gray-700/50 p-6 shadow-2xl transition-all duration-300 hover:shadow-cyan-500/20 hover:-translate-y-1 group">
+                                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all"></div>
+                                    <div class="flex items-center justify-between relative z-10">
+                                        <div class="flex items-center gap-4">
+                                            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-500/20 text-cyan-400">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-lg font-bold text-white tracking-wide">${escapeHtml(name)}</h3>
+                                                <p class="text-sm text-cyan-300 font-medium">Senzor Activ</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                                            ${val}<span class="text-base font-semibold text-gray-400 ml-1">${escapeHtml(unit)}</span>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                    } else {
+                        sensorsContainer.innerHTML = '<div class="text-sm text-gray-500 italic py-2">Nu există senzori neasignați.</div>';
+                    }
+                }
+
+                // 2. Randăm Camerele Normale
                 const rooms = await fetchApi('/api/Rooms');
-                allDevices = []; roomsContainer.innerHTML = '';
-                if (!rooms || rooms.length === 0) return roomsContainer.innerHTML = '<div class="col-span-full p-8 text-center text-gray-500 border border-dashed border-gray-700 rounded-xl">Nicio cameră. Adaugă una din butonul de sus.</div>';
+                allDevices = [];
+                if (roomsContainer) roomsContainer.innerHTML = '';
+
+                if (!rooms || rooms.length === 0) {
+                    if (roomsContainer) roomsContainer.innerHTML = '<div class="col-span-full p-8 text-center text-gray-500 border border-dashed border-gray-700 rounded-xl">Nicio cameră. Adaugă una din butonul de sus.</div>';
+                    return;
+                }
 
                 rooms.forEach(r => {
-                    if (r.devices) allDevices.push(...r.devices);
+                    const roomDevices = r.devices || [];
+                    allDevices.push(...roomDevices);
+                    const devCount = roomDevices.length;
 
                     let html = `<article class="flex flex-col rounded-2xl bg-gray-800 border border-gray-700 overflow-hidden shadow-lg group">
-                <div class="px-5 py-4 bg-gray-800/80 border-b border-gray-700 flex justify-between items-center">
-                  <div><h3 class="font-semibold text-gray-100">${escapeHtml(r.name)}</h3><p class="text-xs text-gray-400 mt-0.5">${r.deviceCount} dispozitive</p></div>
-                  <div class="flex gap-2">
-                    <button onclick="openDeviceModal(${r.id})" class="w-8 h-8 rounded-full bg-indigo-900/40 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-colors flex justify-center items-center" title="Adaugă dispozitiv"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button>
-                    <button onclick="editRoom(${r.id}, '${escapeHtml(r.name)}')" class="w-8 h-8 rounded-full bg-gray-700 text-gray-400 hover:bg-yellow-500 hover:text-white transition-colors flex justify-center items-center opacity-0 group-hover:opacity-100" title="Editează"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                    <button onclick="deleteRoom(${r.id}, '${escapeHtml(r.name)}')" class="w-8 h-8 rounded-full bg-red-900/40 text-red-400 hover:bg-red-600 hover:text-white transition-colors flex justify-center items-center opacity-0 group-hover:opacity-100" title="Șterge"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-                  </div>
-                </div><div class="p-5 space-y-3 flex-1">`;
+                                <div class="px-5 py-4 bg-gray-800/80 border-b border-gray-700 flex justify-between items-center">
+                                  <div><h3 class="font-semibold text-gray-100">${escapeHtml(r.name)}</h3><p class="text-xs text-gray-400 mt-0.5">${devCount} dispozitive</p></div>
+                                  <div class="flex gap-2">
+                                    <button onclick="openDeviceModal(${r.id})" class="w-8 h-8 rounded-full bg-indigo-900/40 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-colors flex justify-center items-center" title="Adaugă dispozitiv"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button>
+                                    <button onclick="editRoom(${r.id}, '${escapeHtml(r.name)}')" class="w-8 h-8 rounded-full bg-gray-700 text-gray-400 hover:bg-yellow-500 hover:text-white transition-colors flex justify-center items-center opacity-0 group-hover:opacity-100" title="Editează"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                                    <button onclick="deleteRoom(${r.id}, '${escapeHtml(r.name)}')" class="w-8 h-8 rounded-full bg-red-900/40 text-red-400 hover:bg-red-600 hover:text-white transition-colors flex justify-center items-center opacity-0 group-hover:opacity-100" title="Șterge"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                  </div>
+                                </div><div class="p-5 space-y-3 flex-1">`;
 
-                    if (!r.devices || r.devices.length === 0) html += '<div class="text-sm text-gray-500 italic text-center py-2">Fără dispozitive</div>';
-                    else r.devices.forEach(d => {
-                        const on = !!d.isOn;
-                        html += `<div class="p-3 rounded-xl transition-all duration-300 flex justify-between items-center border group/dev ${on ? 'bg-gray-800/80 border-yellow-500/30 device-on' : 'bg-gray-900 border-gray-800'}">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full flex justify-center items-center transition-colors ${on ? 'bg-yellow-400 text-gray-900 glow' : 'bg-gray-800 text-gray-500'}">
-                      ${on ? '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>' : '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'}
-                    </div>
-                    <div><div class="font-medium text-sm text-gray-200">${escapeHtml(d.name)}</div><div class="text-xs text-gray-500">${escapeHtml(d.type)}</div></div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button onclick="openDeviceModal(${r.id}, {id:${d.id}, name:'${escapeHtml(d.name)}', type:'${escapeHtml(d.type)}'})" class="text-gray-500 hover:text-yellow-400 opacity-0 group-hover/dev:opacity-100"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                    <button onclick="deleteDevice(${d.id}, '${escapeHtml(d.name)}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover/dev:opacity-100"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-                    <div onclick="toggleDevice(${d.id}, ${on})" class="toggle ${on ? 'bg-accent' : 'bg-gray-600'} ml-2"><div class="thumb" style="transform: translateX(${on ? '20px' : '0'})"></div></div>
-                  </div>
-                </div>`;
-                    });
-                    html += `</div></article>`; roomsContainer.innerHTML += html;
+                    if (devCount === 0) {
+                        html += '<div class="text-sm text-gray-500 italic text-center py-2">Fără dispozitive</div>';
+                    } else {
+                        roomDevices.forEach(d => {
+                            const deviceId = d.id || d.Id;
+                            const deviceName = d.name || d.nume || d.Nume || 'Dispozitiv';
+                            const deviceType = d.type || d.tip || d.Tip || 'Smart Device';
+
+                            const isStateOn = d.isOn === true || d.IsOn === true || d.estePornit === true || d.EstePornit === true;
+
+                            const statusText = isStateOn ? 'Pornit' : 'Oprit';
+                            const isChecked = isStateOn ? 'checked' : '';
+
+                            const glowBgClass = isStateOn ? 'bg-indigo-500/20' : 'bg-gray-500/20';
+                            const glowCircleClass = isStateOn ? 'group-hover:bg-indigo-500/30' : 'group-hover:bg-gray-400/20';
+                            const iconBgClass = isStateOn ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-800 text-gray-400';
+                            const outerGroupClass = isStateOn ? '' : 'opacity-80';
+                            const glowDivVisibility = isStateOn ? '' : 'hidden';
+
+                            html += `
+                                        <div class="relative overflow-hidden rounded-2xl bg-gray-800/40 backdrop-blur-xl border border-gray-700/50 p-6 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/20 hover:-translate-y-1 group ${outerGroupClass}">
+                                            <div class="absolute -top-10 -right-10 w-32 h-32 ${glowBgClass} rounded-full blur-3xl ${glowDivVisibility} ${glowCircleClass}"></div>
+                                            <div class="flex items-center justify-between relative z-10">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="flex items-center justify-center w-12 h-12 rounded-full ${iconBgClass}">
+                                                        ${isStateOn
+                                    ? '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>'
+                                    : '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'}
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="text-lg font-bold text-white tracking-wide">${escapeHtml(deviceName)}</h3>
+                                                        <p class="text-sm text-indigo-300 font-medium">${escapeHtml(deviceType)} • ${statusText}</p>
+                                                    </div>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" class="sr-only peer" ${isChecked} onchange="toggleDevice(${deviceId}, this.checked)">
+                                                    <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-500 shadow-inner"></div>
+                                                </label>
+                                            </div>
+                                        </div>`;
+                        });
+                    }
+                    html += `</div></article>`;
+                    if (roomsContainer) roomsContainer.innerHTML += html;
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Error loading rooms:", e); }
         }
 
         async function loadAutomations() {
@@ -461,103 +516,94 @@
                     const on = a.enabled;
 
                     let html = `<div class="p-4 rounded-xl transition-all flex justify-between items-center shadow-lg group/auto border ${on ? 'bg-gray-800 border-emerald-900/30' : 'bg-gray-800/50 border-gray-700 opacity-60'}">
-                <div class="flex items-center">
-                  <div class="w-8 h-8 rounded-full flex justify-center items-center mr-3 ${a.action === 'TurnOn' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-red-900/30 text-red-400'}">
-                    ${a.action === 'TurnOn' ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>' : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>'}
-                  </div>
-                  <div><div class="font-medium text-gray-200">${escapeHtml(a.name)}</div><div class="text-xs text-gray-500 mt-0.5">${a.action === 'TurnOn' ? 'Aprinde' : 'Stinge'} Device #${a.deviceId}</div></div>
-                </div>
-                <div class="flex items-center gap-4">
-                  <div class="text-right hidden sm:block"><div class="text-xs text-gray-400">Moment:</div><div class="text-sm font-medium ${on ? 'text-emerald-400' : 'text-gray-500'}">${escapeHtml(nextLocal)}</div></div>
-                  <div class="flex gap-2">
-                    <button onclick="editAutomation(${a.id})" class="text-gray-500 hover:text-yellow-400 opacity-0 group-hover/auto:opacity-100"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
-                    <button onclick="deleteAutomation(${a.id}, '${escapeHtml(a.name)}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover/auto:opacity-100"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-                    <div onclick="toggleAutoEnabled(${a.id})" class="toggle toggle-sm ${on ? 'bg-emerald-500' : 'bg-gray-600'} ml-1" title="${on ? 'Pune pe pauză' : 'Activează'}"><div class="thumb thumb-sm" style="transform: translateX(${on ? '16px' : '0'})"></div></div>
-                  </div>
-                </div>
-              </div>`;
+                                <div class="flex items-center">
+                                  <div class="w-8 h-8 rounded-full flex justify-center items-center mr-3 ${a.action === 'TurnOn' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-red-900/30 text-red-400'}">
+                                    ${a.action === 'TurnOn' ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>' : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>'}
+                                  </div>
+                                  <div><div class="font-medium text-gray-200">${escapeHtml(a.name)}</div><div class="text-xs text-gray-500 mt-0.5">${a.action === 'TurnOn' ? 'Aprinde' : 'Stinge'} Device #${a.deviceId}</div></div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                  <div class="text-right hidden sm:block"><div class="text-xs text-gray-400">Moment:</div><div class="text-sm font-medium ${on ? 'text-emerald-400' : 'text-gray-500'}">${escapeHtml(nextLocal)}</div></div>
+                                  <div class="flex gap-2">
+                                    <button onclick="editAutomation(${a.id})" class="text-gray-500 hover:text-yellow-400 opacity-0 group-hover/auto:opacity-100"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                                    <button onclick="deleteAutomation(${a.id}, '${escapeHtml(a.name)}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover/auto:opacity-100"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                    <div onclick="toggleAutoEnabled(${a.id})" class="toggle toggle-sm ${on ? 'bg-emerald-500' : 'bg-gray-600'} ml-1" title="${on ? 'Pune pe pauză' : 'Activează'}"><div class="thumb thumb-sm" style="transform: translateX(${on ? '16px' : '0'})"></div></div>
+                                  </div>
+                                </div>
+                              </div>`;
                     automationsContainer.innerHTML += html;
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Error loading automations", e); }
         }
 
-        /* ================= Activity Logs (frontend) ================= */
+        // ================= LOGS LOGIC =================
+        function appendLogToUI(log) {
+            const ts = log.timestampUtc ? new Date(log.timestampUtc).toLocaleString() : new Date().toLocaleString();
+            const el = document.createElement('div');
+            el.className = 'p-3 rounded-lg bg-gray-900/40 border border-gray-700 transition-all';
+            el.style.opacity = '0'; el.style.transform = 'translateY(-8px)';
 
-function appendLogToUI(log) {
-  const ts = log.timestampUtc ? new Date(log.timestampUtc).toLocaleString() : new Date().toLocaleString();
+            el.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                          <div>
+                            <div class="text-xs text-gray-400">${escapeHtml(ts)}</div>
+                            <div class="font-medium text-gray-100">${escapeHtml(log.action || 'Log')}</div>
+                            <div class="text-xs text-gray-400 mt-1">${escapeHtml(log.details || '')}</div>
+                          </div>
+                          <div class="text-xs text-gray-500">${escapeHtml(new Date(log.timestampUtc || Date.now()).toLocaleTimeString())}</div>
+                        </div>`;
 
-  const el = document.createElement('div');
-  el.className = 'p-3 rounded-lg bg-gray-900/40 border border-gray-700 transition-all';
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(-8px)';
+            if (logsContainer) {
+                logsContainer.prepend(el);
+                requestAnimationFrame(() => {
+                    el.style.transition = 'opacity .28s ease, transform .28s ease';
+                    el.style.opacity = '1'; el.style.transform = 'translateY(0)';
+                });
 
-  el.innerHTML = `
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <div class="text-xs text-gray-400">${escapeHtml(ts)}</div>
-        <div class="font-medium text-gray-100">${escapeHtml(log.action || 'Log')}</div>
-        <div class="text-xs text-gray-400 mt-1">${escapeHtml(log.details || '')}</div>
-      </div>
-      <div class="text-xs text-gray-500">${escapeHtml(new Date(log.timestampUtc || Date.now()).toLocaleTimeString())}</div>
-    </div>
-  `;
+                const placeholder = logsContainer.querySelector('.text-center.italic');
+                if (placeholder) placeholder.remove();
+            }
+        }
 
-  logsContainer.prepend(el);
+        async function loadLogs() {
+            try {
+                const logs = await fetchApi('/api/Logs');
+                if (logsContainer) {
+                    logsContainer.innerHTML = '';
+                    if (!logs || logs.length === 0) {
+                        logsContainer.innerHTML = '<div class="text-center text-gray-500 italic py-6">No activity yet.</div>';
+                        return;
+                    }
+                    logs.reverse().forEach(l => appendLogToUI(l));
+                }
+            } catch (err) {
+                console.error('Failed to load logs', err);
+                if (logsContainer) logsContainer.innerHTML = '<div class="text-sm text-red-400">Activity logs endpoint not available yet.</div>';
+            }
+        }
 
-  requestAnimationFrame(() => {
-    el.style.transition = 'opacity .28s ease, transform .28s ease';
-    el.style.opacity = '1';
-    el.style.transform = 'translateY(0)';
-  });
-
-  const placeholder = logsContainer.querySelector('.no-logs-placeholder');
-  if (placeholder) placeholder.remove();
-}
-
-async function loadLogs() {
-  try {
-    const logs = await fetchApi('/api/Logs');
-    logsContainer.innerHTML = '';
-    if (!logs || logs.length === 0) {
-      logsContainer.innerHTML = '<div class="no-logs-placeholder text-center text-gray-500 italic py-6">No activity yet.</div>';
-      return;
-    }
-
-    logs.reverse().forEach(l => appendLogToUI(l));
-  } catch (err) {
-    console.error('Failed to load logs', err);
-    logsContainer.innerHTML = '<div class="text-sm text-red-400">Failed to load logs.</div>';
-  }
-}
         document.getElementById('refreshBtn').addEventListener('click', () => { loadRooms(); loadAutomations(); showStatus('Sincronizat manual', 'info'); });
 
-        // INITIALIZARE & SIGNALR
+        // ================= INITIALIZATION & SIGNALR =================
         document.addEventListener('DOMContentLoaded', () => {
-            // Elements for login flow
             const overlay = document.getElementById('loginOverlay');
             const loginBtn = document.getElementById('loginBtn');
             const loginError = document.getElementById('loginError');
             const loginUser = document.getElementById('loginUsername');
             const loginPass = document.getElementById('loginPassword');
 
-            // Helper: show/hide login error
-            function showLoginError(msg) {
-                if (loginError) {
-                    loginError.textContent = msg || 'Eroare autentificare';
-                    loginError.classList.remove('hidden');
-                }
-            }
-            function hideLoginError() { if (loginError) loginError.classList.add('hidden'); }
-
-            // Login button handler: POST credentials to /api/Auth/login
             async function doLogin() {
-                hideLoginError();
+                if (loginError) loginError.classList.add('hidden');
                 if (!loginBtn) return;
                 loginBtn.disabled = true;
+
                 try {
                     const username = loginUser ? loginUser.value.trim() : '';
                     const password = loginPass ? loginPass.value : '';
-                    if (!username || !password) return showLoginError('Completează utilizator și parolă');
+                    if (!username || !password) {
+                        if (loginError) { loginError.textContent = 'Completează toate câmpurile'; loginError.classList.remove('hidden'); }
+                        return;
+                    }
 
                     const res = await fetch('/api/Auth/login', {
                         method: 'POST',
@@ -565,63 +611,39 @@ async function loadLogs() {
                         body: JSON.stringify({ username, password })
                     });
 
-                    if (res.status === 401) {
-                        showLoginError('Credențiale invalide');
-                        return;
-                    }
-
                     if (!res.ok) {
-                        const txt = await res.text().catch(() => res.statusText || 'Eroare server');
-                        showLoginError(txt || 'Eroare autentificare');
+                        if (loginError) { loginError.textContent = 'Credențiale invalide'; loginError.classList.remove('hidden'); }
                         return;
                     }
 
-                    const data = await res.json().catch(() => null);
-                    // Try common token properties
-                    let newToken = null;
-                    if (!data) newToken = null;
-                    else if (typeof data === 'string') newToken = data;
-                    else newToken = data.token || data.jwt || data.accessToken || data.access_token || data.jwt_token;
+                    const data = await res.json();
+                    const newToken = data.token || data.jwt_token;
 
-                    if (!newToken) {
-                        showLoginError('Token invalid de la server');
-                        return;
+                    if (newToken) {
+                        localStorage.setItem('jwt_token', newToken);
+                        if (overlay) overlay.classList.add('hidden');
+                        loadRooms(); loadAutomations(); loadLogs();
                     }
-
-                    // Persist token and initialize app
-                    localStorage.setItem('jwt_token', newToken);
-                    if (overlay) overlay.classList.add('hidden');
-                    hideLoginError();
-                    // Load data after successful login
-                    await Promise.allSettled([loadRooms(), loadAutomations(), loadLogs()]);
                 } catch (err) {
-                    console.error('Login failed', err);
-                    showLoginError('Eroare la conectare');
+                    if (loginError) { loginError.textContent = 'Eroare la conectare server'; loginError.classList.remove('hidden'); }
                 } finally {
                     if (loginBtn) loginBtn.disabled = false;
                 }
             }
 
-            // Wire up login interactions
             if (loginBtn) loginBtn.addEventListener('click', doLogin);
-            // Allow Enter key to submit from inputs
             [loginUser, loginPass].forEach(el => {
-                if (!el) return;
-                el.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+                if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
             });
 
-            // On startup, check for token and show login overlay if missing
-            const existingToken = localStorage.getItem('jwt_token');
-            if (!existingToken) {
+            // Startup Check
+            if (!localStorage.getItem('jwt_token')) {
                 if (overlay) overlay.classList.remove('hidden');
             } else {
-                // Token present — load initial data
-                loadRooms();
-                loadAutomations();
-                loadLogs();
+                loadRooms(); loadAutomations(); loadLogs();
             }
 
-            // ================= TIMP REAL (SIGNALR) =================
+            // WebSockets Connection
             if (typeof signalR !== 'undefined') {
                 const connection = new signalR.HubConnectionBuilder()
                     .withUrl("/hubs/smarthome")
@@ -629,45 +651,26 @@ async function loadLogs() {
                     .build();
 
                 connection.on("UpdateUI", () => {
-                    console.log("Semnal primit via SignalR! Baza de date s-a modificat.");
-                    if (!isModalOpen) {
-                        loadRooms();
-                        loadAutomations();
-                        loadLogs();
-                    }
+                    if (!isModalOpen) { loadRooms(); loadAutomations(); loadLogs(); }
                 });
 
                 connection.start()
-                  .then(() => {
-                      showStatus('Conexiune Live Activă 🟢', 'info');
-                      document.getElementById('status').classList.add('text-emerald-400');
-
-                      // Register real-time log handler so UI receives logs instantly
-                      connection.on("ReceiveLog", (newLog) => {
-                          // Append the incoming log to UI only when user is not editing a modal
-                          if (!isModalOpen) {
-                              appendLogToUI(newLog);
-                          }
-                      });
-                  })
-                  .catch(err => {
-                      console.warn("SignalR connection failed", err);
-                      setInterval(() => { if (!isModalOpen) { loadRooms(); loadAutomations(); loadLogs(); } }, 2000);
-                  });
+                    .then(() => {
+                        showStatus('Live 🟢', 'info');
+                        document.getElementById('status').classList.add('text-emerald-400');
+                        connection.on("ReceiveLog", (newLog) => { if (!isModalOpen) appendLogToUI(newLog); });
+                    })
+                    .catch(() => {
+                        setInterval(() => { if (!isModalOpen) { loadRooms(); loadAutomations(); loadLogs(); } }, 3000);
+                    });
             }
         });
 
-        // Logout button handler: clear JWT and reload to show login overlay
-        // Keep comments in English as requested
-        (function attachLogout() {
-            const btn = document.getElementById('logoutBtn');
-            if (!btn) return;
-            btn.addEventListener('click', () => {
-                try { localStorage.removeItem('jwt_token'); } catch (e) { /* ignore */ }
-                // Force reload so DOMContentLoaded logic runs and shows login overlay
-                window.location.reload();
-            });
-        })();
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('jwt_token');
+            window.location.reload();
+        });
     </script>
 </body>
 </html>
