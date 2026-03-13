@@ -42,7 +42,7 @@ Follow these steps to run the application locally.
 
 **1. Clone the repository:**
 ```bash
-git clone [https://github.com/your-username/smarthome-manager.git](https://github.com/your-username/smarthome-manager.git)
+git clone [https://github.com/dennisssssssssssss/smarthome-manager.git](https://github.com/dennisssssssssssss/smarthome-manager.git)
 cd smarthome-manager
 ```
 
