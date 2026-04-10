@@ -15,22 +15,12 @@ import {
 } from '@/components/ui/dialog'
 import {
   ArrowRight,
-  Briefcase,
   CheckCircle2,
-  Home,
-  LifeBuoy,
-  Lock,
-  Mail,
-  Newspaper,
   PlayCircle,
-  ScrollText,
-  Shield,
   ShieldCheck,
-  Smartphone,
-  TrendingUp,
   UserPlus,
-  Zap,
 } from 'lucide-react'
+import { getLandingContent } from '@/lib/i18n/content'
 
 type RegisterFormState = {
   displayName: string
@@ -62,6 +52,7 @@ export const Landing: React.FC = () => {
   const [loginError, setLoginError] = useState('')
   const [registerError, setRegisterError] = useState('')
   const isRomanian = locale === 'ro'
+  const copy = getLandingContent(locale)
 
   const openLogin = () => {
     setLoginError('')
@@ -85,7 +76,7 @@ export const Landing: React.FC = () => {
       setIsLoginOpen(false)
       navigate('/app/dashboard')
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message : (isRomanian ? 'Nu te poti autentifica acum.' : 'Unable to sign in right now.'))
+      setLoginError(error instanceof Error ? error.message : copy.auth.loginFallbackError)
     } finally {
       setIsLoginLoading(false)
     }
@@ -97,7 +88,7 @@ export const Landing: React.FC = () => {
     setRegisterError('')
 
     if (registerForm.password !== registerForm.confirmPassword) {
-      setRegisterError(isRomanian ? 'Parolele nu coincid.' : 'Passwords do not match.')
+      setRegisterError(copy.auth.passwordMismatch)
       setIsRegisterLoading(false)
       return
     }
@@ -114,201 +105,11 @@ export const Landing: React.FC = () => {
       setRegisterForm(initialRegisterForm)
       navigate('/app/dashboard')
     } catch (error) {
-      setRegisterError(error instanceof Error ? error.message : (isRomanian ? 'Nu iti poti crea contul acum.' : 'Unable to create your account right now.'))
+      setRegisterError(error instanceof Error ? error.message : copy.auth.registerFallbackError)
     } finally {
       setIsRegisterLoading(false)
     }
   }
-
-  const features = isRomanian ? [
-    {
-      icon: Home,
-      title: 'Control unificat',
-      description: 'Administrezi toate dispozitivele dintr-o singura interfata eleganta.',
-    },
-    {
-      icon: Zap,
-      title: 'Automatizari inteligente',
-      description: 'Creezi rutine care se adapteaza la stilul tau de viata.',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Vizibilitate energie',
-      description: 'Monitorizezi consumul si reduci costurile energetice.',
-    },
-    {
-      icon: Shield,
-      title: 'Securitate enterprise',
-      description: 'Criptarea si autentificarea moderna iti protejeaza datele.',
-    },
-    {
-      icon: Smartphone,
-      title: 'Acces de oriunde',
-      description: 'Iti accesezi locuinta de pe orice dispozitiv, oriunde te afli.',
-    },
-    {
-      icon: Lock,
-      title: 'Confidentialitate reala',
-      description: 'Datele tale raman ale tale. Intotdeauna.',
-    },
-  ] : [
-    {
-      icon: Home,
-      title: 'Unified control',
-      description: 'Manage every device from a single, elegant interface.',
-    },
-    {
-      icon: Zap,
-      title: 'Smart automations',
-      description: 'Create routines that adapt to your daily rhythm.',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Energy visibility',
-      description: 'Track consumption and reduce operational costs.',
-    },
-    {
-      icon: Shield,
-      title: 'Enterprise security',
-      description: 'Modern encryption and authentication protect your data.',
-    },
-    {
-      icon: Smartphone,
-      title: 'Access anywhere',
-      description: 'Reach the home from any device, wherever you are.',
-    },
-    {
-      icon: Lock,
-      title: 'Real privacy',
-      description: 'Your data stays yours. Always.',
-    },
-  ]
-
-  const pricingTiers = isRomanian ? [
-    {
-      name: 'Start',
-      price: '$19',
-      features: ['Pana la 10 dispozitive', 'Automatizari de baza', 'Acces din aplicatie', 'Suport pe email'],
-    },
-    {
-      name: 'Pro',
-      price: '$49',
-      popular: true,
-      features: ['Dispozitive nelimitate', 'Automatizari avansate', 'Suport prioritar', 'Analize de consum', 'Control vocal'],
-    },
-    {
-      name: 'Enterprise',
-      price: '$99',
-      features: ['Tot ce este in Pro', 'Integrari personalizate', 'Suport dedicat', 'Garantie SLA', 'Optiune white-label'],
-    },
-  ] : [
-    {
-      name: 'Starter',
-      price: '$19',
-      features: ['Up to 10 devices', 'Basic automations', 'App access', 'Email support'],
-    },
-    {
-      name: 'Pro',
-      price: '$49',
-      popular: true,
-      features: ['Unlimited devices', 'Advanced automations', 'Priority support', 'Energy analytics', 'Voice control'],
-    },
-    {
-      name: 'Enterprise',
-      price: '$99',
-      features: ['Everything in Pro', 'Custom integrations', 'Dedicated support', 'SLA guarantee', 'White-label option'],
-    },
-  ]
-
-  const securityHighlights = isRomanian ? [
-    'Acces JWT pentru fiecare apel protejat catre API',
-    'Stocare securizata a parolelor cu PBKDF2 si salt unic',
-    'Actualizari live pentru dispozitive si notificari prin SignalR',
-  ] : [
-    'JWT access for every protected API call',
-    'Secure password storage with PBKDF2 hashing and unique salts',
-    'Live device and notification updates through SignalR',
-  ]
-
-  const companyCards = isRomanian ? [
-    {
-      id: 'about',
-      icon: ShieldCheck,
-      title: 'Despre',
-      description: 'NEXUS HOME aduce design premium, orchestrare hardware si fluxuri sigure intr-o singura platforma de control.',
-    },
-    {
-      id: 'blog',
-      icon: Newspaper,
-      title: 'Blog',
-      description: 'Note de produs, actualizari si idei de automatizare pentru o locuinta care functioneaza firesc.',
-    },
-    {
-      id: 'careers',
-      icon: Briefcase,
-      title: 'Cariere',
-      description: 'Construim echipe in product design, sisteme embedded si operatiuni asistate de AI.',
-    },
-  ] : [
-    {
-      id: 'about',
-      icon: ShieldCheck,
-      title: 'About',
-      description: 'NEXUS HOME brings premium design, hardware orchestration, and secure workflows into one control surface.',
-    },
-    {
-      id: 'blog',
-      icon: Newspaper,
-      title: 'Blog',
-      description: 'Product notes, updates, and automation ideas for homes that should feel effortless.',
-    },
-    {
-      id: 'careers',
-      icon: Briefcase,
-      title: 'Careers',
-      description: 'We are building teams across product design, embedded systems, and AI-assisted operations.',
-    },
-  ]
-
-  const supportCards = isRomanian ? [
-    {
-      id: 'support',
-      icon: LifeBuoy,
-      title: 'Centru de ajutor',
-      description: 'Aici gasesti ghiduri de configurare, pairing pentru dispozitive si rezolvare pentru automatizari.',
-    },
-    {
-      id: 'contact',
-      icon: Mail,
-      title: 'Contact',
-      description: 'Contacteaza echipa de suport la support@nexushome.local pentru onboarding sau urgente.',
-    },
-    {
-      id: 'privacy',
-      icon: ScrollText,
-      title: 'Confidentialitate',
-      description: 'Colectam doar datele necesare pentru securizarea contului si automatizarea rutinei tale.',
-    },
-  ] : [
-    {
-      id: 'support',
-      icon: LifeBuoy,
-      title: 'Help Center',
-      description: 'Setup guides, pairing steps, and automation troubleshooting live here.',
-    },
-    {
-      id: 'contact',
-      icon: Mail,
-      title: 'Contact',
-      description: 'Reach the support team at support@nexushome.local for onboarding or urgent issues.',
-    },
-    {
-      id: 'privacy',
-      icon: ScrollText,
-      title: 'Privacy',
-      description: 'We collect only the data required to secure the account and automate your routines.',
-    },
-  ]
 
   if (isAuthReady && isAuthenticated) {
     return <Navigate to="/app/dashboard" replace />
@@ -323,10 +124,16 @@ export const Landing: React.FC = () => {
           </a>
           <div className="flex items-center gap-4">
             <a href="#features" className="section-label hover:text-gold-light transition-colors">
-              {isRomanian ? 'Functionalitati' : 'Features'}
+              {copy.nav.features}
             </a>
             <a href="#pricing" className="section-label hover:text-gold-light transition-colors">
-              {isRomanian ? 'Preturi' : 'Pricing'}
+              {copy.nav.pricing}
+            </a>
+            <a href="#about" className="section-label hover:text-gold-light transition-colors">
+              {copy.nav.company}
+            </a>
+            <a href="#support" className="section-label hover:text-gold-light transition-colors">
+              {copy.nav.support}
             </a>
             <div className="flex items-center rounded-full border border-gold-muted/60 p-1">
               <button
@@ -349,13 +156,13 @@ export const Landing: React.FC = () => {
               onClick={openLogin}
               className="text-gold border border-gold-muted hover:bg-gold hover:text-background uppercase tracking-wider"
             >
-              {isRomanian ? 'Autentificare' : 'Sign in'}
+              {copy.auth.signIn}
             </Button>
             <Button
               onClick={openRegister}
               className="bg-gold text-background hover:bg-gold-light uppercase tracking-wider"
             >
-              {isRomanian ? 'Incepe acum' : 'Get started'}
+              {copy.auth.getStarted}
             </Button>
           </div>
         </div>
@@ -364,27 +171,23 @@ export const Landing: React.FC = () => {
       <section className="relative flex min-h-screen items-center justify-center px-6 pt-16">
         <div className="container mx-auto max-w-5xl text-center">
           <div className="mb-4">
-            <span className="section-label">{isRomanian ? 'PLATFORMA SMART HOME' : 'SMART HOME PLATFORM'}</span>
+            <span className="section-label">{copy.hero.eyebrow}</span>
           </div>
           <h1 className="hero-title mb-6">
-            <span className="text-foreground">{isRomanian ? 'Casa ta.' : 'Your home.'}</span>
+            <span className="text-foreground">{copy.hero.lineOne}</span>
             <br />
-            <span className="text-gold">{isRomanian ? 'Inteligenta.' : 'Intelligent.'}</span>
+            <span className="text-gold">{copy.hero.lineTwo}</span>
             <br />
-            <span className="text-foreground">{isRomanian ? 'Fara efort.' : 'Effortless.'}</span>
+            <span className="text-foreground">{copy.hero.lineThree}</span>
           </h1>
-          <p className="mx-auto mb-8 max-w-md font-body text-lg font-light text-muted-foreground">
-            {isRomanian
-              ? 'Descopera automatizarea premium, cu control clar si o experienta rafinata.'
-              : 'Discover premium automation with clear control and a refined experience.'}
-          </p>
+          <p className="mx-auto mb-8 max-w-md font-body text-lg font-light text-muted-foreground">{copy.hero.description}</p>
           <div className="flex items-center justify-center gap-4">
             <Button
               onClick={openRegister}
               size="lg"
               className="bg-gold text-background hover:bg-gold-light uppercase tracking-wider"
             >
-              {isRomanian ? 'Incepe acum' : 'Get started'}
+              {copy.auth.getStarted}
             </Button>
             <Button
               variant="outline"
@@ -392,14 +195,12 @@ export const Landing: React.FC = () => {
               onClick={() => setIsDemoOpen(true)}
               className="border-gold text-gold hover:bg-gold hover:text-background uppercase tracking-wider"
             >
-              {isRomanian ? 'Vezi demo' : 'Watch demo'}
+              {copy.auth.watchDemo}
             </Button>
           </div>
           <div className="mt-8 flex items-center justify-center gap-4">
             <div className="h-px w-16 bg-gold" />
-            <span className="section-label text-xs">
-              {isRomanian ? 'Ales deja de peste 12.000 de locuinte din intreaga lume' : 'Already trusted by over 12,000 homes worldwide'}
-            </span>
+            <span className="section-label text-xs">{copy.hero.trust}</span>
             <div className="h-px w-16 bg-gold" />
           </div>
         </div>
@@ -409,14 +210,12 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <div className="mb-2">
-              <span className="section-label">{isRomanian ? 'FUNCTIONALITATI' : 'FEATURES'}</span>
+              <span className="section-label">{copy.featuresSection.eyebrow}</span>
             </div>
-            <h2 className="font-display text-5xl font-light text-foreground">
-              {isRomanian ? 'Tot ce ai nevoie.' : 'Everything you need.'}
-            </h2>
+            <h2 className="font-display text-5xl font-light text-foreground">{copy.featuresSection.title}</h2>
           </div>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, index) => (
+            {copy.featuresSection.items.map((feature, index) => (
               <Card
                 key={index}
                 className="luxury-card flex flex-col items-start p-6 hover:border-gold-light"
@@ -434,24 +233,12 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto max-w-4xl">
           <div className="mb-12 text-center">
             <div className="mb-2">
-              <span className="section-label">{isRomanian ? 'CUM FUNCTIONEAZA' : 'HOW IT WORKS'}</span>
+              <span className="section-label">{copy.howItWorks.eyebrow}</span>
             </div>
-            <h2 className="font-display text-5xl font-light text-foreground">
-              {isRomanian ? 'Simplu prin design.' : 'Simple by design.'}
-            </h2>
+            <h2 className="font-display text-5xl font-light text-foreground">{copy.howItWorks.title}</h2>
           </div>
           <div className="space-y-12">
-            {(isRomanian
-              ? [
-                  { num: '01', title: 'Conectezi dispozitivele', desc: 'Adaugi rapid dispozitivele smart cu un flux clar de configurare.' },
-                  { num: '02', title: 'Definesti rutinele', desc: 'Creezi automatizari care urmeaza ritmul tau zilnic.' },
-                  { num: '03', title: 'Te bucuri de rezultat', desc: 'Casa reactioneaza mai rapid, mai elegant si mai coerent.' },
-                ]
-              : [
-                  { num: '01', title: 'Connect your devices', desc: 'Add smart devices quickly through a guided setup flow.' },
-                  { num: '02', title: 'Define your routines', desc: 'Create automations that follow your daily rhythm.' },
-                  { num: '03', title: 'Enjoy the result', desc: 'Your home reacts faster, more elegantly, and more coherently.' },
-                ]).map((step, index) => (
+            {copy.howItWorks.steps.map((step, index) => (
               <div key={index} className="flex gap-8 items-start">
                 <span className="stat-number text-gold">{step.num}</span>
                 <div className="flex-1 pt-2">
@@ -468,14 +255,12 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <div className="mb-2">
-              <span className="section-label">{isRomanian ? 'PRETURI' : 'PRICING'}</span>
+              <span className="section-label">{copy.pricingSection.eyebrow}</span>
             </div>
-            <h2 className="font-display text-5xl font-light text-foreground">
-              {isRomanian ? 'Alege planul potrivit.' : 'Choose the right plan.'}
-            </h2>
+            <h2 className="font-display text-5xl font-light text-foreground">{copy.pricingSection.title}</h2>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
-            {pricingTiers.map((tier, index) => (
+            {copy.pricingSection.tiers.map((tier, index) => (
               <Card
                 key={index}
                 className={`luxury-card flex flex-col p-8 ${
@@ -484,13 +269,13 @@ export const Landing: React.FC = () => {
               >
                 {tier.popular && (
                   <div className="mb-4">
-                    <span className="section-label text-xs">{isRomanian ? 'CEL MAI ALES' : 'MOST POPULAR'}</span>
+                    <span className="section-label text-xs">{copy.pricingSection.popular}</span>
                   </div>
                 )}
                 <h3 className="card-title mb-2">{tier.name}</h3>
                 <div className="mb-6">
                   <span className="stat-number text-gold">{tier.price}</span>
-                  <span className="font-body text-sm text-muted-foreground">{isRomanian ? '/luna' : '/month'}</span>
+                  <span className="font-body text-sm text-muted-foreground">{copy.pricingSection.perMonth}</span>
                 </div>
                 <ul className="mb-8 flex-1 space-y-3">
                   {tier.features.map((feature, itemIndex) => (
@@ -507,7 +292,7 @@ export const Landing: React.FC = () => {
                     tier.popular ? 'bg-gold text-background hover:bg-gold-light' : 'border-gold text-gold hover:bg-gold hover:text-background'
                   }`}
                 >
-                  {isRomanian ? 'Incepe acum' : 'Get started'}
+                  {copy.auth.getStarted}
                 </Button>
               </Card>
             ))}
@@ -519,27 +304,19 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto max-w-5xl">
           <div className="mb-12 text-center">
             <div className="mb-2">
-              <span className="section-label">SECURITY</span>
+              <span className="section-label">{copy.securitySection.eyebrow}</span>
             </div>
-            <h2 className="font-display text-5xl font-light text-foreground">
-              {isRomanian ? 'Securitate gandita intentionat.' : 'Security designed with intention.'}
-            </h2>
+            <h2 className="font-display text-5xl font-light text-foreground">{copy.securitySection.title}</h2>
           </div>
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <Card className="luxury-card p-8">
               <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full border border-gold-muted">
                 <ShieldCheck className="size-6 text-gold" />
               </div>
-              <h3 className="card-title mb-3">
-                {isRomanian ? 'Construit pentru acces securizat din prima zi.' : 'Built for secure access from day one.'}
-              </h3>
-              <p className="font-body text-sm text-muted-foreground mb-6">
-                {isRomanian
-                  ? 'Conturile noi sunt salvate in baza de date cu parole hash-uite, autentificare JWT si protectie coerenta pe tot API-ul.'
-                  : 'New accounts are stored in the database with hashed passwords, JWT authentication, and consistent API protection.'}
-              </p>
+              <h3 className="card-title mb-3">{copy.securitySection.cardTitle}</h3>
+              <p className="font-body text-sm text-muted-foreground mb-6">{copy.securitySection.cardDescription}</p>
               <div className="space-y-3">
-                {securityHighlights.map((highlight) => (
+                {copy.securitySection.highlights.map((highlight) => (
                   <div key={highlight} className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 size-4 text-gold" />
                     <span className="font-body text-sm text-muted-foreground">{highlight}</span>
@@ -549,17 +326,11 @@ export const Landing: React.FC = () => {
             </Card>
 
             <Card className="luxury-card p-8">
-              <div className="section-label mb-3">{isRomanian ? 'DE CE CONTEAZA' : 'WHY IT MATTERS'}</div>
-              <h3 className="card-title mb-3">
-                {isRomanian ? 'Control fiabil, chiar si dupa refresh.' : 'Reliable control, even after refresh.'}
-              </h3>
-              <p className="font-body text-sm text-muted-foreground mb-6">
-                {isRomanian
-                  ? 'Sesiunea ramane valida corect dupa refresh, iar conturile noi intra direct in acelasi workspace protejat.'
-                  : 'The session remains valid after refresh, and new accounts land directly in the same protected workspace.'}
-              </p>
+              <div className="section-label mb-3">{copy.securitySection.secondaryEyebrow}</div>
+              <h3 className="card-title mb-3">{copy.securitySection.secondaryTitle}</h3>
+              <p className="font-body text-sm text-muted-foreground mb-6">{copy.securitySection.secondaryDescription}</p>
               <Button onClick={openRegister} className="w-full bg-gold text-background hover:bg-gold-light uppercase tracking-wider">
-                {isRomanian ? 'Creeaza-ti contul' : 'Create your account'}
+                {copy.securitySection.secondaryCta}
               </Button>
             </Card>
           </div>
@@ -570,14 +341,12 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <div className="mb-2">
-              <span className="section-label">{isRomanian ? 'COMPANIE' : 'COMPANY'}</span>
+              <span className="section-label">{copy.companySection.eyebrow}</span>
             </div>
-            <h2 className="font-display text-5xl font-light text-foreground">
-              {isRomanian ? 'Mai mult decat un dashboard.' : 'More than a dashboard.'}
-            </h2>
+            <h2 className="font-display text-5xl font-light text-foreground">{copy.companySection.title}</h2>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
-            {companyCards.map((card) => (
+            {copy.companySection.cards.map((card) => (
               <Card key={card.id} id={card.id} className="luxury-card p-8 scroll-mt-24">
                 <card.icon className="mb-4 size-7 text-gold" />
                 <h3 className="card-title mb-3">{card.title}</h3>
@@ -592,14 +361,12 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <div className="mb-2">
-              <span className="section-label">{isRomanian ? 'SUPORT' : 'SUPPORT'}</span>
+              <span className="section-label">{copy.supportSection.eyebrow}</span>
             </div>
-            <h2 className="font-display text-5xl font-light text-foreground">
-              {isRomanian ? 'Suport care chiar ajuta.' : 'Support that truly helps.'}
-            </h2>
+            <h2 className="font-display text-5xl font-light text-foreground">{copy.supportSection.title}</h2>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
-            {supportCards.map((card) => (
+            {copy.supportSection.cards.map((card) => (
               <Card key={card.id} id={card.id} className="luxury-card p-8 scroll-mt-24">
                 <card.icon className="mb-4 size-7 text-gold" />
                 <h3 className="card-title mb-3">{card.title}</h3>
@@ -613,22 +380,16 @@ export const Landing: React.FC = () => {
       <section className="py-24 px-6">
         <div className="container mx-auto max-w-4xl">
           <Card className="luxury-card p-10 text-center">
-            <div className="section-label mb-3">{isRomanian ? 'GATA DE START' : 'READY TO START'}</div>
-            <h2 className="font-display text-4xl font-light text-foreground mb-4">
-              {isRomanian ? 'Creeaza workspace-ul si adu toate camerele impreuna.' : 'Create your workspace and bring every room together.'}
-            </h2>
-            <p className="mx-auto max-w-2xl font-body text-sm text-muted-foreground mb-8">
-              {isRomanian
-                ? 'Creeaza un cont nou sau foloseste contul implicit de administrator daca vrei sa inspectezi aplicatia imediat.'
-                : 'Create a new account or use the default administrator account if you want to inspect the app right away.'}
-            </p>
+            <div className="section-label mb-3">{copy.ctaSection.eyebrow}</div>
+            <h2 className="font-display text-4xl font-light text-foreground mb-4">{copy.ctaSection.title}</h2>
+            <p className="mx-auto max-w-2xl font-body text-sm text-muted-foreground mb-8">{copy.ctaSection.description}</p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Button onClick={openRegister} className="bg-gold text-background hover:bg-gold-light uppercase tracking-wider">
                 <UserPlus className="size-4" />
-                {isRomanian ? 'Creeaza cont' : 'Create account'}
+                {copy.auth.createAccount}
               </Button>
               <Button variant="outline" onClick={openLogin} className="border-gold text-gold hover:bg-gold hover:text-background uppercase tracking-wider">
-                {isRomanian ? 'Autentificare' : 'Sign in'}
+                {copy.auth.signIn}
               </Button>
             </div>
           </Card>
@@ -643,37 +404,35 @@ export const Landing: React.FC = () => {
               <a href="#top" className="font-display text-xl text-gold mb-4 inline-block">
                 NEXUS HOME
               </a>
-              <p className="font-body text-sm text-muted-foreground">
-                {isRomanian ? 'Automatizare smart home premium pentru un stil de viata modern.' : 'Premium smart home automation for a modern lifestyle.'}
-              </p>
+              <p className="font-body text-sm text-muted-foreground">{copy.footer.description}</p>
             </div>
             <div>
-              <h4 className="section-label mb-4">{isRomanian ? 'PRODUS' : 'PRODUCT'}</h4>
+              <h4 className="section-label mb-4">{copy.footer.product}</h4>
               <ul className="space-y-2 font-body text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-gold transition-colors">{isRomanian ? 'Functionalitati' : 'Features'}</a></li>
-                <li><a href="#pricing" className="hover:text-gold transition-colors">{isRomanian ? 'Preturi' : 'Pricing'}</a></li>
-                <li><a href="#security" className="hover:text-gold transition-colors">{isRomanian ? 'Securitate' : 'Security'}</a></li>
+                <li><a href="#features" className="hover:text-gold transition-colors">{copy.footer.features}</a></li>
+                <li><a href="#pricing" className="hover:text-gold transition-colors">{copy.footer.pricing}</a></li>
+                <li><a href="#security" className="hover:text-gold transition-colors">{copy.footer.security}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="section-label mb-4">{isRomanian ? 'COMPANIE' : 'COMPANY'}</h4>
+              <h4 className="section-label mb-4">{copy.footer.company}</h4>
               <ul className="space-y-2 font-body text-sm text-muted-foreground">
-                <li><a href="#about" className="hover:text-gold transition-colors">{isRomanian ? 'Despre' : 'About'}</a></li>
-                <li><a href="#blog" className="hover:text-gold transition-colors">Blog</a></li>
-                <li><a href="#careers" className="hover:text-gold transition-colors">{isRomanian ? 'Cariere' : 'Careers'}</a></li>
+                <li><a href="#about" className="hover:text-gold transition-colors">{copy.footer.about}</a></li>
+                <li><a href="#blog" className="hover:text-gold transition-colors">{copy.footer.blog}</a></li>
+                <li><a href="#careers" className="hover:text-gold transition-colors">{copy.footer.careers}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="section-label mb-4">{isRomanian ? 'SUPORT' : 'SUPPORT'}</h4>
+              <h4 className="section-label mb-4">{copy.footer.support}</h4>
               <ul className="space-y-2 font-body text-sm text-muted-foreground">
-                <li><a href="#support" className="hover:text-gold transition-colors">{isRomanian ? 'Centru de ajutor' : 'Help Center'}</a></li>
-                <li><a href="#contact" className="hover:text-gold transition-colors">Contact</a></li>
-                <li><a href="#privacy" className="hover:text-gold transition-colors">{isRomanian ? 'Confidentialitate' : 'Privacy'}</a></li>
+                <li><a href="#support" className="hover:text-gold transition-colors">{copy.footer.helpCenter}</a></li>
+                <li><a href="#contact" className="hover:text-gold transition-colors">{copy.footer.contact}</a></li>
+                <li><a href="#privacy" className="hover:text-gold transition-colors">{copy.footer.privacy}</a></li>
               </ul>
             </div>
           </div>
           <div className="mt-8 text-center font-body text-sm text-muted-foreground">
-            <p>&copy; 2026 NEXUS HOME. {isRomanian ? 'Toate drepturile rezervate.' : 'All rights reserved.'}</p>
+            <p>&copy; 2026 NEXUS HOME. {copy.footer.rights}</p>
           </div>
         </div>
       </footer>
@@ -681,26 +440,12 @@ export const Landing: React.FC = () => {
       <Dialog open={isDemoOpen} onOpenChange={setIsDemoOpen}>
         <DialogContent className="bg-card border-gold-muted">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl text-gold">{isRomanian ? 'Demo produs' : 'Product demo'}</DialogTitle>
-            <DialogDescription className="font-body text-sm text-muted-foreground">
-              {isRomanian
-                ? 'Acest preview ghidat iti arata acelasi flux pe care il vede utilizatorul dupa ce isi creeaza contul.'
-                : 'This guided preview shows the same flow a user sees after creating an account.'}
-            </DialogDescription>
+            <DialogTitle className="font-display text-2xl text-gold">{copy.demo.title}</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">{copy.demo.description}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {(isRomanian
-              ? [
-                  'Monitorizezi camerele, dispozitivele si statusul live dintr-un singur panou.',
-                  'Creezi automatizari care pornesc la timp fix si continua la intervale recurente.',
-                  'Primesti notificari live si iti administrezi contul din navigatia de sus.',
-                ]
-              : [
-                  'Monitor rooms, devices, and live status from a single dashboard.',
-                  'Create automations that start on time and continue on recurring intervals.',
-                  'Receive live notifications and manage your account from the top navigation.',
-                ]).map((item) => (
+            {copy.demo.items.map((item) => (
               <div key={item} className="flex items-start gap-3 rounded-lg border border-gold-muted/50 bg-background/60 p-4">
                 <PlayCircle className="mt-0.5 size-4 text-gold" />
                 <span className="font-body text-sm text-muted-foreground">{item}</span>
@@ -710,7 +455,7 @@ export const Landing: React.FC = () => {
 
           <DialogFooter className="mt-2">
             <Button asChild variant="outline" className="border-gold text-gold hover:bg-gold hover:text-background uppercase tracking-wider">
-              <a href="#features">{isRomanian ? 'Vezi functionalitatile' : 'Explore features'}</a>
+              <a href="#features">{copy.demo.exploreFeatures}</a>
             </Button>
             <Button
               onClick={() => {
@@ -719,7 +464,7 @@ export const Landing: React.FC = () => {
               }}
               className="bg-gold text-background hover:bg-gold-light uppercase tracking-wider"
             >
-              {isRomanian ? 'Creeaza cont' : 'Create account'}
+              {copy.auth.createAccount}
               <ArrowRight className="size-4" />
             </Button>
           </DialogFooter>
@@ -729,14 +474,12 @@ export const Landing: React.FC = () => {
       <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
         <DialogContent className="bg-card border-gold-muted">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl text-gold">{isRomanian ? 'Bine ai revenit' : 'Welcome back'}</DialogTitle>
-            <DialogDescription className="font-body text-sm text-muted-foreground">
-              {isRomanian ? 'Autentifica-te in workspace-ul tau smart home.' : 'Sign in to your smart home workspace.'}
-            </DialogDescription>
+            <DialogTitle className="font-display text-2xl text-gold">{copy.auth.welcomeBack}</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">{copy.auth.welcomeDescription}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleLogin} className="space-y-4 mt-4">
             <div>
-              <label className="section-label text-xs mb-2 block">{isRomanian ? 'Utilizator' : 'Username'}</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.username}</label>
               <Input
                 value={credentials.username}
                 onChange={(event) => setCredentials({ ...credentials, username: event.target.value })}
@@ -745,7 +488,7 @@ export const Landing: React.FC = () => {
               />
             </div>
             <div>
-              <label className="section-label text-xs mb-2 block">{isRomanian ? 'Parola' : 'Password'}</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.password}</label>
               <Input
                 type="password"
                 value={credentials.password}
@@ -762,20 +505,18 @@ export const Landing: React.FC = () => {
               disabled={isLoginLoading}
               className="w-full bg-gold text-background hover:bg-gold-light uppercase tracking-wider"
             >
-              {isLoginLoading
-                ? (isRomanian ? 'Se autentifica...' : 'Signing in...')
-                : (isRomanian ? 'Autentificare' : 'Sign in')}
+              {isLoginLoading ? copy.auth.signingIn : copy.auth.signIn}
             </Button>
             <div className="space-y-2 text-center">
               <p className="text-xs text-muted-foreground font-body">
-                {isRomanian ? 'Cont administrator implicit: admin / assist2026' : 'Default administrator account: admin / assist2026'}
+                {copy.auth.defaultAdminHint}
               </p>
               <button
                 type="button"
                 onClick={openRegister}
                 className="text-xs uppercase tracking-wider text-gold hover:text-gold-light"
               >
-                {isRomanian ? 'Ai nevoie de cont? Creeaza unul' : 'Need an account? Sign up'}
+                {copy.auth.needAccount}
               </button>
             </div>
           </form>
@@ -785,14 +526,12 @@ export const Landing: React.FC = () => {
       <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
         <DialogContent className="bg-card border-gold-muted">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl text-gold">{isRomanian ? 'Creeaza-ti contul' : 'Create your account'}</DialogTitle>
-            <DialogDescription className="font-body text-sm text-muted-foreground">
-              {isRomanian ? 'Inregistreaza-te si intri direct in workspace-ul tau smart home.' : 'Sign up and go straight into your smart home workspace.'}
-            </DialogDescription>
+            <DialogTitle className="font-display text-2xl text-gold">{copy.auth.createAccountTitle}</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">{copy.auth.createAccountDescription}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleRegister} className="space-y-4 mt-4">
             <div>
-              <label className="section-label text-xs mb-2 block">{isRomanian ? 'Nume afisat' : 'Display name'}</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.displayName}</label>
               <Input
                 value={registerForm.displayName}
                 onChange={(event) => setRegisterForm({ ...registerForm, displayName: event.target.value })}
@@ -801,7 +540,7 @@ export const Landing: React.FC = () => {
               />
             </div>
             <div>
-              <label className="section-label text-xs mb-2 block">{isRomanian ? 'Utilizator' : 'Username'}</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.username}</label>
               <Input
                 value={registerForm.username}
                 onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
@@ -810,7 +549,7 @@ export const Landing: React.FC = () => {
               />
             </div>
             <div>
-              <label className="section-label text-xs mb-2 block">Email</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.email}</label>
               <Input
                 type="email"
                 value={registerForm.email}
@@ -820,22 +559,22 @@ export const Landing: React.FC = () => {
               />
             </div>
             <div>
-              <label className="section-label text-xs mb-2 block">{isRomanian ? 'Parola' : 'Password'}</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.password}</label>
               <Input
                 type="password"
                 value={registerForm.password}
                 onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
-                placeholder={isRomanian ? 'Minimum 8 caractere' : 'Minimum 8 characters'}
+                placeholder={copy.auth.minimumCharacters}
                 className="bg-background border-gold-muted focus:border-gold"
               />
             </div>
             <div>
-              <label className="section-label text-xs mb-2 block">{isRomanian ? 'Confirma parola' : 'Confirm password'}</label>
+              <label className="section-label text-xs mb-2 block">{copy.auth.confirmPassword}</label>
               <Input
                 type="password"
                 value={registerForm.confirmPassword}
                 onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
-                placeholder={isRomanian ? 'Repeta parola' : 'Repeat the password'}
+                placeholder={copy.auth.repeatPassword}
                 className="bg-background border-gold-muted focus:border-gold"
               />
             </div>
@@ -847,22 +586,16 @@ export const Landing: React.FC = () => {
               disabled={isRegisterLoading}
               className="w-full bg-gold text-background hover:bg-gold-light uppercase tracking-wider"
             >
-              {isRegisterLoading
-                ? (isRomanian ? 'Se creeaza contul...' : 'Creating account...')
-                : (isRomanian ? 'Creeaza cont' : 'Sign up')}
+              {isRegisterLoading ? copy.auth.creatingAccount : copy.auth.createAccount}
             </Button>
             <div className="space-y-2 text-center">
-              <p className="text-xs text-muted-foreground font-body">
-                {isRomanian
-                  ? 'Contul tau este salvat in baza de date a aplicatiei si autentificat imediat dupa inregistrare.'
-                  : 'Your account is stored in the app database and signed in immediately after registration.'}
-              </p>
+              <p className="text-xs text-muted-foreground font-body">{copy.auth.accountStoredHint}</p>
               <button
                 type="button"
                 onClick={openLogin}
                 className="text-xs uppercase tracking-wider text-gold hover:text-gold-light"
               >
-                {isRomanian ? 'Ai deja cont? Autentifica-te' : 'Already have an account? Sign in'}
+                {copy.auth.alreadyHaveAccount}
               </button>
             </div>
           </form>

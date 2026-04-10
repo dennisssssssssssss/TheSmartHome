@@ -11,6 +11,7 @@ import type { Notification } from '@/types'
 import { useSignalR } from '@/hooks/useSignalR'
 import { useSearch } from '@/context/SearchContext'
 import { useI18n } from '@/context/I18nContext'
+import { getShellContent } from '@/lib/i18n/content'
 
 interface TopBarProps {
   onToggleSidebar: () => void
@@ -20,6 +21,7 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, isCollapsed }) => {
   const { username } = useAuth()
   const { locale } = useI18n()
+  const shellContent = getShellContent(locale)
   const navigate = useNavigate()
   const location = useLocation()
   const { searchQuery, setSearchQuery } = useSearch()
@@ -104,7 +106,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, isCollapsed }) 
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder={locale === 'ro' ? 'Cauta camere, dispozitive...' : 'Search rooms, devices...'}
+            placeholder={shellContent.topBar.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-9 bg-background border-gold-muted focus:border-gold font-body"
@@ -120,9 +122,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, isCollapsed }) 
             }`}
           />
           <span className="text-xs text-muted-foreground uppercase tracking-wider font-body">
-            {isSignalRConnected
-              ? (locale === 'ro' ? 'Conectat' : 'Connected')
-              : (locale === 'ro' ? 'Deconectat' : 'Disconnected')}
+            {isSignalRConnected ? shellContent.topBar.connected : shellContent.topBar.disconnected}
           </span>
         </div>
 
@@ -132,12 +132,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, isCollapsed }) 
             size="icon"
             onClick={() => navigate('/app/notifications')}
             className={`relative ${isNotificationsPage ? 'text-gold' : 'text-muted-foreground hover:text-gold'}`}
-            aria-label={notificationsEnabled
-              ? (locale === 'ro' ? 'Deschide notificarile' : 'Open notifications')
-              : (locale === 'ro' ? 'Notificarile sunt puse pe pauza' : 'Notifications are paused')}
-            title={notificationsEnabled
-              ? (locale === 'ro' ? 'Deschide notificarile' : 'Open notifications')
-              : (locale === 'ro' ? 'Notificarile sunt puse pe pauza' : 'Notifications are paused')}
+            aria-label={notificationsEnabled ? shellContent.topBar.openNotifications : shellContent.topBar.notificationsPaused}
+            title={notificationsEnabled ? shellContent.topBar.openNotifications : shellContent.topBar.notificationsPaused}
           >
             <NotificationIcon className="size-5" />
             {unreadCount > 0 && (
@@ -154,8 +150,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, isCollapsed }) 
         <button
           type="button"
           onClick={() => navigate('/app/settings')}
-          aria-label={locale === 'ro' ? 'Deschide setarile' : 'Open settings'}
-          title={locale === 'ro' ? 'Deschide setarile' : 'Open settings'}
+          aria-label={shellContent.topBar.openSettings}
+          title={shellContent.topBar.openSettings}
           className={`flex size-10 items-center justify-center rounded-full border text-gold bg-background transition-colors ${
             isSettingsPage ? 'border-gold-light' : 'hover:border-gold-light'
           }`}

@@ -14,170 +14,10 @@ import { useSearch } from '@/context/SearchContext'
 import { useI18n } from '@/context/I18nContext'
 import { toast } from 'sonner'
 import { useSignalR } from '@/hooks/useSignalR'
+import { getDashboardContent } from '@/lib/i18n/content'
 
 const AMBIENT_DEVICE_TYPES: Device['type'][] = ['bulb', 'tv', 'ac', 'plug', 'speaker', 'blinds']
 const SECURITY_DEVICE_TYPES: Device['type'][] = ['lock', 'motion', 'door', 'camera']
-
-const DASHBOARD_COPY = {
-  ro: {
-    errors: {
-      load: 'Nu am putut incarca panoul principal',
-      action: 'Actiunea nu a putut fi finalizata',
-      roomToggle: 'Nu am putut actualiza camera',
-      roomToggleUnavailable: 'Aceasta camera nu are dispozitive ambient de controlat',
-    },
-    success: {
-      action: 'Actiunea a fost aplicata',
-      roomToggle: 'Camera a fost actualizata',
-    },
-    greetings: {
-      morning: 'Buna dimineata',
-      afternoon: 'Buna ziua',
-      evening: 'Buna seara',
-    },
-    stats: {
-      devices: 'Dispozitive totale',
-      active: 'Active acum',
-      rooms: 'Camere',
-      energyToday: 'Consum astazi',
-      weekTrend: 'saptamana aceasta',
-    },
-    quickActions: {
-      title: 'Actiuni rapide',
-      items: [
-        { id: 'all-lights-off', label: 'Stinge toate luminile' },
-        { id: 'lock-all-doors', label: 'Incuie toate usile' },
-        { id: 'activate-security', label: 'Activeaza securitatea' },
-        { id: 'evening-mode', label: 'Mod de seara' },
-        { id: 'good-night', label: 'Noapte buna' },
-      ],
-    },
-    onboarding: {
-      eyebrow: 'PRIMII PASI',
-      title: 'Configureaza locuinta in ordinea corecta.',
-      description: 'Fluxul recomandat este simplu: creezi camera, adaugi dispozitivul, apoi construiesti prima automatizare.',
-      progress: (completed: number, total: number) => `${completed}/${total} pasi finalizati`,
-      complete: 'Finalizat',
-      steps: {
-        rooms: {
-          title: 'Creeaza prima camera',
-          description: 'Porneste de la structura locuintei, nu de la o lista de dispozitive.',
-          action: 'Adauga camera',
-          href: '/app/rooms?createRoom=1',
-        },
-        devices: {
-          title: 'Adauga primul dispozitiv',
-          description: 'Aloca fiecare dispozitiv direct in camera potrivita.',
-          action: 'Adauga dispozitiv',
-          href: '/app/rooms?createDevice=1',
-        },
-        automations: {
-          title: 'Creeaza prima automatizare',
-          description: 'Leaga dispozitivele intre ele printr-o rutina usor de inteles.',
-          action: 'Creeaza automatizare',
-          href: '/app/automations?create=1',
-        },
-      },
-    },
-    rooms: {
-      title: 'Camere',
-      viewAll: 'Vezi tot',
-      activeComfort: (active: number, total: number) => `${active} din ${total} dispozitive ambient active`,
-      emptyComfort: 'Nu exista dispozitive ambient',
-    },
-    activity: {
-      title: 'Activitate recenta',
-      empty: 'Nu exista activitate recenta inca.',
-      unknownDevice: 'Dispozitiv necunoscut',
-    },
-    energy: {
-      title: 'Consum energie',
-      today: 'Astazi',
-      thisWeek: 'Saptamana aceasta',
-      vsPreviousDay: 'Vs ziua precedenta',
-      previousDayHint: 'fata de ziua precedenta',
-    },
-  },
-  en: {
-    errors: {
-      load: 'Failed to load the dashboard',
-      action: 'The action could not be completed',
-      roomToggle: 'Failed to update the room',
-      roomToggleUnavailable: 'This room has no comfort devices to control',
-    },
-    success: {
-      action: 'Action applied successfully',
-      roomToggle: 'Room updated successfully',
-    },
-    greetings: {
-      morning: 'Good morning',
-      afternoon: 'Good afternoon',
-      evening: 'Good evening',
-    },
-    stats: {
-      devices: 'Total devices',
-      active: 'Active now',
-      rooms: 'Rooms',
-      energyToday: 'Energy today',
-      weekTrend: 'this week',
-    },
-    quickActions: {
-      title: 'Quick actions',
-      items: [
-        { id: 'all-lights-off', label: 'Turn off all lights' },
-        { id: 'lock-all-doors', label: 'Lock all doors' },
-        { id: 'activate-security', label: 'Activate security' },
-        { id: 'evening-mode', label: 'Evening mode' },
-        { id: 'good-night', label: 'Good night' },
-      ],
-    },
-    onboarding: {
-      eyebrow: 'FIRST STEPS',
-      title: 'Set up the home in the right order.',
-      description: 'The recommended flow is simple: create the room, add the device, then build the first automation.',
-      progress: (completed: number, total: number) => `${completed}/${total} steps completed`,
-      complete: 'Completed',
-      steps: {
-        rooms: {
-          title: 'Create the first room',
-          description: 'Start from the structure of the home, not from a flat device list.',
-          action: 'Add room',
-          href: '/app/rooms?createRoom=1',
-        },
-        devices: {
-          title: 'Add the first device',
-          description: 'Assign every device directly to the room where it belongs.',
-          action: 'Add device',
-          href: '/app/rooms?createDevice=1',
-        },
-        automations: {
-          title: 'Create the first automation',
-          description: 'Connect devices through a routine that is easy to understand.',
-          action: 'Create automation',
-          href: '/app/automations?create=1',
-        },
-      },
-    },
-    rooms: {
-      title: 'Rooms',
-      viewAll: 'View all',
-      activeComfort: (active: number, total: number) => `${active} of ${total} comfort devices active`,
-      emptyComfort: 'No comfort devices yet',
-    },
-    activity: {
-      title: 'Recent activity',
-      empty: 'No recent activity yet.',
-      unknownDevice: 'Unknown device',
-    },
-    energy: {
-      title: 'Energy consumption',
-      today: 'Today',
-      thisWeek: 'This week',
-      vsPreviousDay: 'Vs previous day',
-      previousDayHint: 'compared with the previous day',
-    },
-  },
-} as const
 
 type QuickActionId = 'all-lights-off' | 'lock-all-doors' | 'activate-security' | 'evening-mode' | 'good-night'
 
@@ -190,7 +30,7 @@ export const Dashboard: React.FC = () => {
   const { username } = useAuth()
   const { searchQuery } = useSearch()
   const { locale, formatDate, formatRelativeTime } = useI18n()
-  const copy = DASHBOARD_COPY[locale]
+  const copy = getDashboardContent(locale)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [devices, setDevices] = useState<Device[]>([])

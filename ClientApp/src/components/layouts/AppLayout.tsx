@@ -4,16 +4,18 @@ import { useAuth } from '@/context/AuthContext'
 import { AppSidebar } from './AppSidebar'
 import { TopBar } from './TopBar'
 import { useI18n } from '@/context/I18nContext'
+import { getShellContent } from '@/lib/i18n/content'
 
 export const AppLayout: React.FC = () => {
   const { isAuthenticated, isAuthReady } = useAuth()
   const { locale } = useI18n()
+  const shellContent = getShellContent(locale)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   if (!isAuthReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="section-label text-gold">{locale === 'ro' ? 'Se incarca...' : 'Loading...'}</div>
+        <div className="section-label text-gold">{shellContent.loading}</div>
       </div>
     )
   }

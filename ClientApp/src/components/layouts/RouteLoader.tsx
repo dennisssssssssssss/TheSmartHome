@@ -1,5 +1,6 @@
 import React from 'react'
 import { useI18n } from '@/context/I18nContext'
+import { getShellContent } from '@/lib/i18n/content'
 
 type RouteLoaderProps = {
   fullscreen?: boolean
@@ -7,7 +8,7 @@ type RouteLoaderProps = {
 
 export const RouteLoader: React.FC<RouteLoaderProps> = ({ fullscreen = false }) => {
   const { locale } = useI18n()
-  const message = locale === 'ro' ? 'Se incarca pagina...' : 'Loading page...'
+  const message = getShellContent(locale).routeLoading
 
   return (
     <div

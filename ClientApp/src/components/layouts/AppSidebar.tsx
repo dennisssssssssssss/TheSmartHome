@@ -1,18 +1,10 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Home,
-  BatteryCharging,
-  GitBranch,
-  Shield,
-  Bell,
-  Settings,
-  LogOut,
-} from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/context/I18nContext'
+import { getShellContent } from '@/lib/i18n/content'
 
 interface AppSidebarProps {
   isCollapsed: boolean
@@ -22,26 +14,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isCollapsed }) => {
   const location = useLocation()
   const { username, logout } = useAuth()
   const { locale } = useI18n()
-
-  const navItems = locale === 'ro'
-    ? [
-        { icon: LayoutDashboard, label: 'Panou', path: '/app/dashboard' },
-        { icon: Home, label: 'Camere si dispozitive', path: '/app/rooms' },
-        { icon: GitBranch, label: 'Automatizari', path: '/app/automations' },
-        { icon: BatteryCharging, label: 'Energie', path: '/app/energy' },
-        { icon: Shield, label: 'Securitate', path: '/app/security' },
-        { icon: Bell, label: 'Notificari', path: '/app/notifications' },
-        { icon: Settings, label: 'Setari', path: '/app/settings' },
-      ]
-    : [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard' },
-        { icon: Home, label: 'Rooms & Devices', path: '/app/rooms' },
-        { icon: GitBranch, label: 'Automations', path: '/app/automations' },
-        { icon: BatteryCharging, label: 'Energy', path: '/app/energy' },
-        { icon: Shield, label: 'Security', path: '/app/security' },
-        { icon: Bell, label: 'Notifications', path: '/app/notifications' },
-        { icon: Settings, label: 'Settings', path: '/app/settings' },
-      ]
+  const shellContent = getShellContent(locale)
+  const navItems = shellContent.navItems
 
   const getInitials = (name: string | null) => {
     if (!name) return 'A'
@@ -120,7 +94,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isCollapsed }) => {
                   className="mt-1 h-auto p-0 text-xs text-muted-foreground hover:text-gold"
                 >
                   <LogOut className="mr-1 size-3" />
-                  {locale === 'ro' ? 'Deconectare' : 'Sign Out'}
+                  {shellContent.signOut}
                 </Button>
               </div>
             </div>
