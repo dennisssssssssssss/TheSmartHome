@@ -1,6 +1,27 @@
 @SmartHomeManager_HostAddress = http://localhost:5110
+@contentType = application/json
 
-GET {{SmartHomeManager_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login and copy the token from the response
+POST {{SmartHomeManager_HostAddress}}/api/Auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "assist2026"
+}
 
 ###
+# Replace <JWT_TOKEN> after login.
+GET {{SmartHomeManager_HostAddress}}/api/Rooms
+Accept: application/json
+Authorization: Bearer <JWT_TOKEN>
+
+###
+GET {{SmartHomeManager_HostAddress}}/api/Devices
+Accept: application/json
+Authorization: Bearer <JWT_TOKEN>
+
+###
+GET {{SmartHomeManager_HostAddress}}/api/Automations
+Accept: application/json
+Authorization: Bearer <JWT_TOKEN>
