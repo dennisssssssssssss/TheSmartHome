@@ -31,6 +31,13 @@ This frontend is the React + Vite client for SmartHome Manager.
 - backend integration belongs in `src/lib/api.ts`
 - page-specific orchestration belongs in the page component
 
+## Environment configuration
+
+You can create a local `.env` file based on `.env.example`.
+
+- `VITE_API_BASE_URL`
+  Overrides the default API host used by the frontend.
+
 ## Generated files
 
 The following outputs are generated locally and should not be committed:

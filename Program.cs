@@ -1,23 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SmartHomeManager.Data;
-using SmartHomeManager.Models;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
+using SmartHomeManager.Data;
 using SmartHomeManager.Hubs;
 using SmartHomeManager.Middleware;
+using SmartHomeManager.Models;
 using SmartHomeManager.Services;
-using System.Text;
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    var contentRootPath = builder.Environment.ContentRootPath;
 
-    // ---------------------------------------------------------
-    // SERILOG
-    // ---------------------------------------------------------
-    var logFilePath = Path.Combine(AppContext.BaseDirectory, "Logs", "log.txt");
+    // Keep logs close to the deployed app so published builds are self-contained.
+    var logFilePath = Path.Combine(contentRootPath, "Logs", "log.txt");
     Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
 
     Log.Logger = new LoggerConfiguration()
@@ -30,10 +30,31 @@ try
 
     builder.Host.UseSerilog();
 
-    // ---------------------------------------------------------
-    // JWT AUTHENTICATION
-    // ---------------------------------------------------------
     var jwtKey = builder.Configuration["Jwt:Key"] ?? "FallbackSecretKeyThatIsLongEnough123!!!";
+    var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+    var fallbackOrigins = new[]
+    {
+        "http://localhost:5000",
+        "http://localhost:5110",
+        "https://localhost:7139",
+        "http://localhost:5173",
+    };
+
+    var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    var connectionStringBuilder = string.IsNullOrWhiteSpace(configuredConnectionString)
+        ? new SqliteConnectionStringBuilder()
+        : new SqliteConnectionStringBuilder(configuredConnectionString);
+
+    if (string.IsNullOrWhiteSpace(connectionStringBuilder.DataSource))
+    {
+        connectionStringBuilder.DataSource = Path.Combine(contentRootPath, "smarthome.db");
+    }
+    else if (!Path.IsPathRooted(connectionStringBuilder.DataSource))
+    {
+        connectionStringBuilder.DataSource = Path.Combine(contentRootPath, connectionStringBuilder.DataSource);
+    }
+
+    var connectionString = connectionStringBuilder.ToString();
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -46,13 +67,10 @@ try
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "SmartHomeApp",
                 ValidAudience = builder.Configuration["Jwt:Audience"] ?? "SmartHomeUsers",
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             };
         });
 
-    // ---------------------------------------------------------
-    // CORS
-    // ---------------------------------------------------------
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowAll", policy =>
@@ -60,32 +78,24 @@ try
             if (builder.Environment.IsDevelopment())
             {
                 policy.SetIsOriginAllowed(_ => true)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
             }
             else
             {
-                policy.WithOrigins(
-                        "http://localhost:5000",
-                        "http://localhost:5110",
-                        "https://localhost:7139",
-                        "http://localhost:5173"
-                      )
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
+                policy.WithOrigins(configuredOrigins.Length > 0 ? configuredOrigins : fallbackOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
             }
         });
     });
 
-    // ---------------------------------------------------------
-    // SERVICES
-    // ---------------------------------------------------------
-    builder.Services.AddControllers().AddJsonOptions(x =>
+    builder.Services.AddControllers().AddJsonOptions(options =>
     {
-        x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-        x.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
     builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, SmartHomeManager.Repositories.RoomRepository>();
@@ -93,22 +103,17 @@ try
     builder.Services.AddScoped<SmartHomeManager.Services.IDeviceControlService, SmartHomeManager.Services.DeviceControlService>();
     builder.Services.AddScoped<SmartHomeManager.Services.ISecurityNotificationService, SmartHomeManager.Services.SecurityNotificationService>();
 
-    builder.Services.AddDbContext<AppDbContext>(opt =>
-        opt.UseSqlite("Data Source=smarthome.db"));
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlite(connectionString));
 
     builder.Services.AddSignalR();
+    builder.Services.AddHealthChecks();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
-    builder.Services.AddHostedService<SmartHomeManager.Services.AutomationSchedulerService>();
+    builder.Services.AddHostedService<AutomationSchedulerService>();
 
-    // ---------------------------------------------------------
-    // BUILD APP
-    // ---------------------------------------------------------
     var app = builder.Build();
 
-    // ---------------------------------------------------------
-    // DATABASE: single Migrate + seed
-    // ---------------------------------------------------------
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -124,14 +129,14 @@ try
 
             db.Devices.AddRange(
                 new Device { Nume = "Bec Inteligent", Tip = "Lampa", EstePornit = true, Valoare = 75.0, RoomId = living.Id },
-                new Device { Nume = "Lumină Ambientală", Tip = "Lampa", EstePornit = false, Valoare = 30.0, RoomId = living.Id },
+                new Device { Nume = "Lumina Ambientala", Tip = "Lampa", EstePornit = false, Valoare = 30.0, RoomId = living.Id },
                 new Device { Nume = "Termostat", Tip = "Termostat", EstePornit = true, Valoare = 22.5, RoomId = bedroom.Id },
-                new Device { Nume = "Senzor Climă", Tip = "Senzor", EstePornit = true, Valoare = 0.0, SensorValue = 22.5, SensorUnit = "°C", RoomId = living.Id },
+                new Device { Nume = "Senzor Clima", Tip = "Senzor", EstePornit = true, Valoare = 0.0, SensorValue = 22.5, SensorUnit = "C", RoomId = living.Id },
                 new Device { Nume = "Umiditate Aer", Tip = "Senzor", EstePornit = true, Valoare = 0.0, SensorValue = 45.0, SensorUnit = "%", RoomId = living.Id }
             );
             db.SaveChanges();
 
-            Console.WriteLine("[System] Database seeded with initial Rooms and Devices.");
+            Console.WriteLine("[System] Database seeded with initial rooms and devices.");
         }
 
         var demoNotifications = db.Notifications.Where(notification =>
@@ -176,26 +181,25 @@ try
         }
     }
 
-    // ---------------------------------------------------------
-    // MIDDLEWARE PIPELINE
-    // ---------------------------------------------------------
     app.UseMiddleware<ExceptionMiddleware>();
-
     app.UseDefaultFiles();
     app.UseStaticFiles();
-
+    app.UseSerilogRequestLogging();
     app.UseCors("AllowAll");
-
     app.UseRouting();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
 
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // ---------------------------------------------------------
-    // ENDPOINTS
-    // ---------------------------------------------------------
     app.MapControllers();
     app.MapHub<SmartHomeHub>("/hubs/smarthome");
+    app.MapHealthChecks("/health");
     app.MapFallbackToFile("index.html");
 
     Console.WriteLine($"[System] Application started. Logs: {logFilePath}");
@@ -204,11 +208,11 @@ try
 }
 catch (Exception ex)
 {
+    Log.Fatal(ex, "Application failed to start");
     Console.WriteLine("\n=======================================");
-    Console.WriteLine("EROARE FATALĂ LA PORNIRE:");
-    Console.WriteLine(ex.ToString());
+    Console.WriteLine("FATAL STARTUP ERROR:");
+    Console.WriteLine(ex);
     Console.WriteLine("=======================================\n");
-    Console.ReadLine();
 }
 finally
 {

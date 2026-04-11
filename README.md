@@ -18,7 +18,7 @@ The technical codebase, naming, and documentation are kept in English. The produ
 
 ### Backend
 
-- ASP.NET Core `net10.0`
+- ASP.NET Core `net8.0`
 - Entity Framework Core with SQLite
 - JWT authentication
 - SignalR
@@ -36,7 +36,7 @@ The technical codebase, naming, and documentation are kept in English. The produ
 
 ### Prerequisites
 
-- .NET 10 SDK
+- .NET 8 SDK recommended
 - Node.js
 - Visual Studio or Visual Studio Insiders
 
@@ -53,6 +53,16 @@ On startup the application automatically:
 - applies Entity Framework migrations
 - creates `smarthome.db` when it is missing
 - seeds the default admin user and baseline data when needed
+
+### Portable deployment
+
+For machines without a local .NET installation, publish a self-contained build:
+
+```powershell
+.\scripts\publish-self-contained.ps1 -Runtime win-x64
+```
+
+For deployment details, see [Deployment](docs/DEPLOYMENT.md).
 
 ### Default credentials
 
@@ -78,6 +88,7 @@ On startup the application automatically:
 
 - [Repository structure](docs/REPOSITORY-STRUCTURE.md)
 - [API quickstart](docs/API-QUICKSTART.md)
+- [Deployment](docs/DEPLOYMENT.md)
 - [ClientApp architecture](ClientApp/README.md)
 - [HTTP request samples](SmartHomeManager.http)
 
