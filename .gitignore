@@ -32,6 +32,7 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+.keys/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -364,9 +365,17 @@ FodyWeavers.xsd
 
 # Frontend build artifacts
 ClientApp/dist/
+ClientApp/.env
 wwwroot/assets/
 wwwroot/index.html
 wwwroot/vite.svg
+wwwroot/manifest.webmanifest
+wwwroot/sw.js
+wwwroot/favicon-32.png
+wwwroot/apple-touch-icon.png
+wwwroot/icon-192.png
+wwwroot/icon-512.png
+wwwroot/icon-maskable-512.png
 
 # Local runtime data
 smarthome.db
@@ -375,3 +384,6 @@ smarthome.db-wal
 
 # Local verification outputs
 .codex-verify-build*/
+
+# Local CLI/runtime caches
+.dotnet-cli/

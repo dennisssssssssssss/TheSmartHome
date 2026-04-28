@@ -49,12 +49,24 @@ export const I18nProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const minutes = Math.max(Math.floor(diff / 60000), 0)
     const hours = Math.floor(minutes / 60)
 
+    if (minutes <= 0) {
+      return locale === 'ro' ? 'chiar acum' : 'just now'
+    }
+
     if (minutes < 60) {
-      return locale === 'ro' ? `acum ${minutes} min` : `${minutes} min ago`
+      if (locale === 'ro') {
+        return minutes === 1 ? 'acum 1 minut' : `acum ${minutes} minute`
+      }
+
+      return minutes === 1 ? '1 min ago' : `${minutes} min ago`
     }
 
     if (hours < 24) {
-      return locale === 'ro' ? `acum ${hours} h` : `${hours} h ago`
+      if (locale === 'ro') {
+        return hours === 1 ? 'acum 1 oră' : `acum ${hours} ore`
+      }
+
+      return hours === 1 ? '1 h ago' : `${hours} h ago`
     }
 
     return formatDate(date)

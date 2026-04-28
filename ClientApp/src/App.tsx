@@ -21,6 +21,9 @@ const Automations = lazy(() =>
 const Energy = lazy(() =>
   import('@/pages/app/Energy').then((module) => ({ default: module.Energy }))
 )
+const Integrations = lazy(() =>
+  import('@/pages/app/Integrations').then((module) => ({ default: module.Integrations }))
+)
 const Security = lazy(() =>
   import('@/pages/app/Security').then((module) => ({ default: module.Security }))
 )
@@ -54,6 +57,7 @@ export function App() {
               <Route path="rooms" element={renderLazyPage(Rooms)} />
               <Route path="automations" element={renderLazyPage(Automations)} />
               <Route path="energy" element={renderLazyPage(Energy)} />
+              <Route path="integrations" element={renderLazyPage(Integrations)} />
               <Route path="security" element={renderLazyPage(Security)} />
               <Route path="notifications" element={renderLazyPage(Notifications)} />
               <Route path="settings" element={renderLazyPage(Settings)} />

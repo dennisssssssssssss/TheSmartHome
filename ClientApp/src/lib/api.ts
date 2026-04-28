@@ -1,4 +1,25 @@
-﻿import type { Device, Room, Automation, ActivityLog, Notification, EnergyData, DashboardStats, AuthUser, RegisterRequest } from '@/types'
+﻿import type {
+  Device,
+  Room,
+  Automation,
+  ActivityLog,
+  Notification,
+  EnergyData,
+  EnergyAsset,
+  EnergyOverview,
+  DashboardStats,
+  AuthUser,
+  RegisterRequest,
+  DeviceIntegrationOption,
+  MatterPairingResult,
+  IntegrationOverview,
+  IntegrationConnection,
+  IntegrationConnectionUpsertRequest,
+  IntegrationConnectionTestRequest,
+  IntegrationConnectionTestResult,
+  IntegrationDiscoveredDevice,
+  ModbusTelemetrySyncResult,
+} from '@/types'
 import { decodeJwtPayload } from '@/lib/jwt'
 
 const resolveApiBase = (): string => {
@@ -144,6 +165,13 @@ function toBackendDevice(device: Partial<Device>) {
   return {
     name: device.name,
     type: device.type ? reverseMapDeviceType(device.type) : undefined,
+    category: device.category,
+    integrationProtocol: device.integration_protocol,
+    transport: device.connection_transport,
+    externalDeviceId: device.external_device_id,
+    endpoint: device.endpoint,
+    manufacturer: device.manufacturer,
+    model: device.model,
     isOn: device.status,
     value: device.value,
     roomId: device.room_id ? Number(device.room_id) : null,
@@ -157,8 +185,157 @@ function mapDevice(d: any): Device {
     room_id: d.roomId != null ? String(d.roomId) : undefined,
     unit: d.sensorUnit || '',
     value: d.value,
+    category: d.category,
+    integration_protocol: d.integrationProtocol,
+    connection_transport: d.transport,
+    external_device_id: d.externalDeviceId,
+    endpoint: d.endpoint,
+    manufacturer: d.manufacturer,
+    model: d.model,
+    last_seen_at: d.lastSeenUtc,
     name: d.name,
     type: mapDeviceType(d.type),
+  }
+}
+
+function mapIntegrationOption(option: any): DeviceIntegrationOption {
+  return {
+    code: option.code,
+    label: option.label,
+    status: option.status,
+    description: option.description,
+    recommendedFor: option.recommendedFor,
+    transports: option.transports ?? [],
+  }
+}
+
+function mapMatterPairingResult(result: any): MatterPairingResult {
+  return {
+    external_device_id: result.externalDeviceId,
+    suggested_name: result.suggestedName,
+    suggested_type: result.suggestedType,
+    manufacturer: result.manufacturer,
+    model: result.model,
+    endpoint: result.endpoint,
+    transport: result.transport,
+    protocol: result.protocol,
+    is_reachable: result.isReachable,
+  }
+}
+
+function mapEnergyOverview(result: any): EnergyOverview {
+  return {
+    current: {
+      solar_power_watts: result.current?.solarPowerWatts ?? 0,
+      home_load_watts: result.current?.homeLoadWatts ?? 0,
+      grid_power_watts: result.current?.gridPowerWatts ?? 0,
+      battery_power_watts: result.current?.batteryPowerWatts ?? 0,
+      battery_state_of_charge_percent: result.current?.batteryStateOfChargePercent ?? undefined,
+      last_updated_utc: result.current?.lastUpdatedUtc ?? undefined,
+    },
+    today: {
+      solar_wh: result.today?.solarWh ?? 0,
+      home_wh: result.today?.homeWh ?? 0,
+      grid_import_wh: result.today?.gridImportWh ?? 0,
+      grid_export_wh: result.today?.gridExportWh ?? 0,
+      battery_charge_wh: result.today?.batteryChargeWh ?? 0,
+      battery_discharge_wh: result.today?.batteryDischargeWh ?? 0,
+    },
+    timeline: (result.timeline ?? []).map((point: any) => ({
+      timestamp_utc: point.timestampUtc,
+      solar_power_watts: point.solarPowerWatts ?? 0,
+      home_load_watts: point.homeLoadWatts ?? 0,
+      grid_power_watts: point.gridPowerWatts ?? 0,
+      battery_power_watts: point.batteryPowerWatts ?? 0,
+      battery_state_of_charge_percent: point.batteryStateOfChargePercent ?? undefined,
+    })),
+  }
+}
+
+function mapEnergyAsset(result: any): EnergyAsset {
+  return {
+    id: String(result.id),
+    name: result.name,
+    kind: result.kind,
+    source_type: result.sourceType,
+    integration_protocol: result.integrationProtocol,
+    external_asset_id: result.externalAssetId ?? undefined,
+    manufacturer: result.manufacturer ?? undefined,
+    model: result.model ?? undefined,
+    is_active: Boolean(result.isActive),
+    last_telemetry_utc: result.lastTelemetryUtc ?? undefined,
+    current_power_watts: result.currentPowerWatts ?? undefined,
+    state_of_charge_percent: result.stateOfChargePercent ?? undefined,
+  }
+}
+
+function mapIntegrationOverview(result: any): IntegrationOverview {
+  return {
+    totalIntegratedDevices: result.totalIntegratedDevices ?? 0,
+    protocols: (result.protocols ?? []).map((protocol: any) => ({
+      code: protocol.code,
+      label: protocol.label,
+      status: protocol.status,
+      description: protocol.description,
+      recommendedFor: protocol.recommendedFor,
+      transports: protocol.transports ?? [],
+      deviceCount: protocol.deviceCount ?? 0,
+      isConfigured: Boolean(protocol.isConfigured),
+      baseUrl: protocol.baseUrl ?? undefined,
+      hasApiKey: Boolean(protocol.hasApiKey),
+      telemetrySyncEnabled: Boolean(protocol.telemetrySyncEnabled),
+      telemetrySyncIntervalMinutes: protocol.telemetrySyncIntervalMinutes ?? 15,
+      connectionUpdatedUtc: protocol.connectionUpdatedUtc ?? undefined,
+      lastTelemetrySyncUtc: protocol.lastTelemetrySyncUtc ?? undefined,
+      lastTelemetrySyncStatus: protocol.lastTelemetrySyncStatus ?? undefined,
+    })),
+    telemetrySources: (result.telemetrySources ?? []).map((source: any) => ({
+      sourceType: source.sourceType,
+      sampleCount: source.sampleCount ?? 0,
+      lastUpdatedUtc: source.lastUpdatedUtc ?? undefined,
+    })),
+  }
+}
+
+function mapIntegrationConnection(result: any): IntegrationConnection {
+  return {
+    protocol: result.protocol,
+    baseUrl: result.baseUrl ?? undefined,
+    hasApiKey: Boolean(result.hasApiKey),
+    telemetrySyncEnabled: Boolean(result.telemetrySyncEnabled),
+    telemetrySyncIntervalMinutes: result.telemetrySyncIntervalMinutes ?? 15,
+    updatedAtUtc: result.updatedAtUtc ?? undefined,
+    lastTelemetrySyncUtc: result.lastTelemetrySyncUtc ?? undefined,
+    lastTelemetrySyncStatus: result.lastTelemetrySyncStatus ?? undefined,
+  }
+}
+
+function mapIntegrationConnectionTestResult(result: any): IntegrationConnectionTestResult {
+  return {
+    isReachable: Boolean(result.isReachable),
+    message: result.message ?? '',
+    checkedAtUtc: result.checkedAtUtc ?? new Date().toISOString(),
+  }
+}
+
+function mapIntegrationDiscoveredDevice(result: any): IntegrationDiscoveredDevice {
+  return {
+    external_device_id: result.externalDeviceId,
+    name: result.name ?? undefined,
+    type: result.type ?? undefined,
+    manufacturer: result.manufacturer ?? undefined,
+    model: result.model ?? undefined,
+    transport: result.transport ?? undefined,
+    source_type: result.sourceType ?? undefined,
+    is_reachable: Boolean(result.isReachable),
+  }
+}
+
+function mapModbusTelemetrySyncResult(result: any): ModbusTelemetrySyncResult {
+  return {
+    importedSamples: result.importedSamples ?? 0,
+    sourceTypes: result.sourceTypes ?? [],
+    syncedAtUtc: result.syncedAtUtc ?? new Date().toISOString(),
   }
 }
 
@@ -296,6 +473,45 @@ export const api = {
   },
 
   devices: {
+    getIntegrationOptions: async (): Promise<DeviceIntegrationOption[]> => {
+      const response = await fetch(`${API_BASE}/api/Devices/integration-options`, {
+        headers: getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response))
+      }
+
+      const data = await response.json()
+      return data.map(mapIntegrationOption)
+    },
+
+    pairMatter: async (request: {
+      pairing_code: string
+      bridge_base_url?: string
+      transport?: string
+      name?: string
+      type?: Device['type']
+    }): Promise<MatterPairingResult> => {
+      const response = await fetch(`${API_BASE}/api/Devices/pair/matter`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          pairingCode: request.pairing_code,
+          bridgeBaseUrl: request.bridge_base_url,
+          transport: request.transport,
+          name: request.name,
+          type: request.type ? reverseMapDeviceType(request.type) : undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response))
+      }
+
+      return mapMatterPairingResult(await response.json())
+    },
+
     getAll: async (): Promise<Device[]> => {
       try {
         const response = await fetch(`${API_BASE}/api/Devices`, {
@@ -640,6 +856,166 @@ export const api = {
       } catch (error) {
         console.error('API error loading energy summary:', error)
         throw toApiError(error, 'Failed to load energy summary')
+      }
+    },
+
+    getOverview: async (): Promise<EnergyOverview> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Energy/overview`, {
+          headers: getAuthHeaders(),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        return mapEnergyOverview(await response.json())
+      } catch (error) {
+        console.error('API error loading energy overview:', error)
+        throw toApiError(error, 'Failed to load energy overview')
+      }
+    },
+
+    getAssets: async (): Promise<EnergyAsset[]> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Energy/assets`, {
+          headers: getAuthHeaders(),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        const data = await response.json()
+        return (data ?? []).map(mapEnergyAsset)
+      } catch (error) {
+        console.error('API error loading energy assets:', error)
+        throw toApiError(error, 'Failed to load energy assets')
+      }
+    },
+  },
+
+  integrations: {
+    getOverview: async (): Promise<IntegrationOverview> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Integrations/overview`, {
+          headers: getAuthHeaders(),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        return mapIntegrationOverview(await response.json())
+      } catch (error) {
+        console.error('API error loading integrations overview:', error)
+        throw toApiError(error, 'Failed to load integrations overview')
+      }
+    },
+
+    getConnections: async (): Promise<IntegrationConnection[]> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Integrations/connections`, {
+          headers: getAuthHeaders(),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        const data = await response.json()
+        return (data ?? []).map(mapIntegrationConnection)
+      } catch (error) {
+        console.error('API error loading integration connections:', error)
+        throw toApiError(error, 'Failed to load integration connections')
+      }
+    },
+
+    saveConnection: async (
+      protocol: string,
+      payload: IntegrationConnectionUpsertRequest,
+    ): Promise<IntegrationConnection> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Integrations/connections/${protocol}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            baseUrl: payload.baseUrl,
+            apiKey: payload.apiKey,
+            preserveExistingApiKey: payload.preserveExistingApiKey ?? true,
+            clearApiKey: payload.clearApiKey ?? false,
+            telemetrySyncEnabled: payload.telemetrySyncEnabled,
+            telemetrySyncIntervalMinutes: payload.telemetrySyncIntervalMinutes,
+          }),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        return mapIntegrationConnection(await response.json())
+      } catch (error) {
+        console.error(`API error saving integration connection ${protocol}:`, error)
+        throw toApiError(error, 'Failed to save integration connection')
+      }
+    },
+
+    testConnection: async (
+      protocol: string,
+      payload?: IntegrationConnectionTestRequest,
+    ): Promise<IntegrationConnectionTestResult> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Integrations/connections/${protocol}/test`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            baseUrl: payload?.baseUrl,
+            apiKey: payload?.apiKey,
+          }),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        return mapIntegrationConnectionTestResult(await response.json())
+      } catch (error) {
+        console.error(`API error testing integration connection ${protocol}:`, error)
+        throw toApiError(error, 'Failed to test integration connection')
+      }
+    },
+
+    discoverDevices: async (
+      protocol: string,
+      payload?: IntegrationConnectionTestRequest,
+    ): Promise<IntegrationDiscoveredDevice[]> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Integrations/${protocol}/discover-devices`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            baseUrl: payload?.baseUrl,
+            apiKey: payload?.apiKey,
+          }),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        const data = await response.json()
+        return (data ?? []).map(mapIntegrationDiscoveredDevice)
+      } catch (error) {
+        console.error(`API error discovering devices for ${protocol}:`, error)
+        throw toApiError(error, 'Failed to discover devices')
+      }
+    },
+
+    syncModbusTelemetry: async (
+      payload?: IntegrationConnectionTestRequest,
+    ): Promise<ModbusTelemetrySyncResult> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/Integrations/modbus/sync-telemetry`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            baseUrl: payload?.baseUrl,
+            apiKey: payload?.apiKey,
+          }),
+        })
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response))
+        }
+        return mapModbusTelemetrySyncResult(await response.json())
+      } catch (error) {
+        console.error('API error syncing Modbus telemetry:', error)
+        throw toApiError(error, 'Failed to sync Modbus telemetry')
       }
     },
   },

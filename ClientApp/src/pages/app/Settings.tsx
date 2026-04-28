@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -15,12 +15,15 @@ import { api } from '@/lib/api'
 import { getAutoLockEnabled, getNotificationsEnabled, setAutoLockEnabled, setNotificationsEnabled } from '@/lib/preferences'
 import { AUTO_LOCK_INTERVAL_MINUTES, getAutoLockRuleName, getNextAutoLockRunValue, isAutoLockRule } from '@/lib/security'
 import { toast } from 'sonner'
+import { getSettingsContent } from '@/lib/i18n/settings'
 
 export const Settings: React.FC = () => {
   const { theme, setTheme } = useTheme()
   const { locale, setLocale } = useI18n()
+  const copy = getSettingsContent(locale)
   const { username, logout } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [notificationsEnabled, setNotificationsEnabledState] = useState(getNotificationsEnabled)
   const [autoLockEnabled, setAutoLockEnabledState] = useState(getAutoLockEnabled)
@@ -71,9 +74,15 @@ export const Settings: React.FC = () => {
     }
   }, [])
 
-  const handleNotificationsChange = (v: boolean) => {
-    setNotificationsEnabledState(v)
-    setNotificationsEnabled(v)
+  useEffect(() => {
+    if (searchParams.get('changePassword') === '1') {
+      setPasswordDialogOpen(true)
+    }
+  }, [searchParams])
+
+  const handleNotificationsChange = (value: boolean) => {
+    setNotificationsEnabledState(value)
+    setNotificationsEnabled(value)
   }
 
   const handleAutoLockChange = async (enabled: boolean) => {
@@ -89,9 +98,7 @@ export const Settings: React.FC = () => {
       const autoLockRules = automations.filter(isAutoLockRule)
 
       if (enabled && lockDevices.length === 0) {
-        toast.error(locale === 'ro'
-          ? 'Adauga cel putin o incuietoare inteligenta inainte sa activezi auto-lock'
-          : 'Add at least one smart lock before enabling auto-lock')
+        toast.error(copy.notifications.autoLockNeedsDevice)
         setAutoLockEnabledState(false)
         setAutoLockEnabled(false)
         return
@@ -125,21 +132,19 @@ export const Settings: React.FC = () => {
             .map((rule) => api.automations.update(rule.id, { ...rule, enabled: false })),
         ])
 
-        toast.success(locale === 'ro'
-          ? 'Auto-lock a fost activat pentru toate incuietorile la 22:00'
-          : 'Auto-lock was enabled for all locks at 22:00')
+        toast.success(copy.notifications.autoLockEnabled)
       } else {
         await Promise.all(
           autoLockRules.map((rule) => api.automations.update(rule.id, { ...rule, enabled: false })),
         )
 
-        toast.success(locale === 'ro' ? 'Auto-lock a fost dezactivat' : 'Auto-lock was disabled')
+        toast.success(copy.notifications.autoLockDisabled)
       }
 
       setAutoLockEnabledState(enabled)
       setAutoLockEnabled(enabled)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : (locale === 'ro' ? 'Nu am putut actualiza auto-lock' : 'Could not update auto-lock'))
+      toast.error(error instanceof Error ? error.message : copy.notifications.autoLockUpdateFailed)
       setAutoLockEnabledState(getAutoLockEnabled())
     } finally {
       setIsUpdatingAutoLock(false)
@@ -148,17 +153,17 @@ export const Settings: React.FC = () => {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error(locale === 'ro' ? 'Completeaza toate campurile pentru parola' : 'Complete all password fields')
+      toast.error(copy.notifications.completePasswordFields)
       return
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error(locale === 'ro' ? 'Parolele nu coincid' : 'Passwords do not match')
+      toast.error(copy.notifications.passwordMismatch)
       return
     }
 
     if (newPassword.length < 8) {
-      toast.error(locale === 'ro' ? 'Parola noua trebuie sa aiba cel putin 8 caractere' : 'New password must contain at least 8 characters')
+      toast.error(copy.notifications.passwordTooShort)
       return
     }
 
@@ -166,58 +171,69 @@ export const Settings: React.FC = () => {
 
     try {
       await api.auth.changePassword(currentPassword, newPassword)
-      toast.success(locale === 'ro' ? 'Parola a fost schimbata cu succes' : 'Password changed successfully')
+      toast.success(copy.notifications.passwordChanged)
       setPasswordDialogOpen(false)
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : (locale === 'ro' ? 'Nu am putut schimba parola' : 'Could not change the password'))
+      toast.error(error instanceof Error ? error.message : copy.notifications.passwordChangeFailed)
     } finally {
       setIsChangingPassword(false)
     }
   }
 
   const handleFactoryReset = () => {
-    if (!confirm(locale === 'ro'
-      ? 'Esti sigur? Vei fi deconectat, iar datele locale salvate in acest browser vor fi sterse.'
-      : 'Are you sure? You will be signed out and the browser-stored local data will be cleared.')) return
+    if (!confirm(copy.system.resetConfirmation)) {
+      return
+    }
+
     localStorage.clear()
     logout()
     setTheme('system')
     navigate('/')
   }
 
+  const handlePasswordDialogOpenChange = (open: boolean) => {
+    setPasswordDialogOpen(open)
+
+    if (!open && searchParams.get('changePassword') === '1') {
+      const nextSearchParams = new URLSearchParams(searchParams)
+      nextSearchParams.delete('changePassword')
+      setSearchParams(nextSearchParams, { replace: true })
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">
-        <div className="section-label mb-2">SETTINGS</div>
-        <h1 className="page-title">{locale === 'ro' ? 'Preferintele tale.' : 'Your preferences.'}</h1>
+        <div className="section-label mb-2">{copy.page.eyebrow}</div>
+        <h1 className="page-title">{copy.page.title}</h1>
       </div>
 
       <div className="max-w-4xl space-y-6">
         <Card className="luxury-card p-6">
-          <h3 className="font-display text-xl mb-4">{locale === 'ro' ? 'General' : 'General'}</h3>
+          <h3 className="font-display text-xl mb-4">{copy.sections.general}</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-foreground">{locale === 'ro' ? 'Tema inchisa' : 'Dark mode'}</Label>
+                <Label className="text-foreground">{copy.general.theme}</Label>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  {locale === 'ro' ? 'Comuta intre tema inchisa si tema deschisa' : 'Switch between dark and light theme'}
+                  {copy.general.themeDescription}
                 </p>
               </div>
               <Switch
                 checked={theme === 'dark'}
-                onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
+                onCheckedChange={(value) => setTheme(value ? 'dark' : 'light')}
                 className="data-[state=checked]:bg-gold"
               />
             </div>
             <Separator className="bg-border" />
             <div className="flex items-center justify-between gap-6">
               <div>
-                <Label className="text-foreground">{locale === 'ro' ? 'Limba interfetei' : 'Interface language'}</Label>
+                <Label className="text-foreground">{copy.general.language}</Label>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  {locale === 'ro' ? 'Alege limba pentru site si aplicatie' : 'Choose the language for the site and app'}
+                  {copy.general.languageDescription}
                 </p>
               </div>
               <div className="w-48">
@@ -226,8 +242,8 @@ export const Settings: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ro">Romana</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="ro">{copy.general.romanian}</SelectItem>
+                    <SelectItem value="en">{copy.general.english}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -235,9 +251,9 @@ export const Settings: React.FC = () => {
             <Separator className="bg-border" />
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-foreground">{locale === 'ro' ? 'Notificari' : 'Notifications'}</Label>
+                <Label className="text-foreground">{copy.general.notifications}</Label>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  {locale === 'ro' ? 'Preferinta locala pentru acest browser' : 'Local preference for this browser'}
+                  {copy.general.notificationsDescription}
                 </p>
               </div>
               <Switch
@@ -249,11 +265,9 @@ export const Settings: React.FC = () => {
             <Separator className="bg-border" />
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-foreground">Auto-Lock</Label>
+                <Label className="text-foreground">{copy.general.autoLock}</Label>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  {locale === 'ro'
-                    ? 'Creeaza o automatizare zilnica la 22:00 pentru fiecare incuietoare'
-                    : 'Creates a daily 22:00 automation for every lock'}
+                  {copy.general.autoLockDescription}
                 </p>
               </div>
               <Switch
@@ -267,10 +281,10 @@ export const Settings: React.FC = () => {
         </Card>
 
         <Card className="luxury-card p-6">
-          <h3 className="font-display text-xl mb-4">{locale === 'ro' ? 'Cont' : 'Account'}</h3>
+          <h3 className="font-display text-xl mb-4">{copy.sections.account}</h3>
           <div className="space-y-4">
             <div>
-              <Label className="text-foreground">{locale === 'ro' ? 'Utilizator' : 'Username'}</Label>
+              <Label className="text-foreground">{copy.account.username}</Label>
               <p className="font-body text-sm text-muted-foreground mt-1">{username || 'admin'}</p>
             </div>
             <Separator className="bg-border" />
@@ -280,59 +294,55 @@ export const Settings: React.FC = () => {
                 onClick={() => setPasswordDialogOpen(true)}
                 className="border-gold text-gold hover:bg-gold hover:text-background"
               >
-                {locale === 'ro' ? 'Schimba parola' : 'Change password'}
+                {copy.account.changePassword}
               </Button>
             </div>
           </div>
         </Card>
 
         <Card className="luxury-card p-6">
-          <h3 className="font-display text-xl mb-4">{locale === 'ro' ? 'Sistem' : 'System'}</h3>
+          <h3 className="font-display text-xl mb-4">{copy.sections.system}</h3>
           <div className="space-y-4">
             <div>
-              <Label className="text-foreground">{locale === 'ro' ? 'Versiune' : 'Version'}</Label>
+              <Label className="text-foreground">{copy.system.version}</Label>
               <p className="font-body text-sm text-muted-foreground mt-1">NEXUS HOME 2026.1.0</p>
             </div>
             <Separator className="bg-border" />
             <div>
               <p className="font-body text-sm text-muted-foreground mb-3">
-                {locale === 'ro'
-                  ? 'Aceasta actiune sterge doar preferintele salvate in browser si te deconecteaza. Nu sterge dispozitivele sau datele din baza de date.'
-                  : 'This action only clears browser-stored preferences and signs you out. It does not delete devices or database data.'}
+                {copy.system.resetDescription}
               </p>
               <Button variant="destructive" onClick={handleFactoryReset} className="bg-destructive text-destructive-foreground">
-                {locale === 'ro' ? 'Reseteaza datele locale' : 'Reset local data'}
+                {copy.system.resetLocalData}
               </Button>
             </div>
           </div>
         </Card>
       </div>
 
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+      <Dialog open={passwordDialogOpen} onOpenChange={handlePasswordDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{locale === 'ro' ? 'Schimba parola' : 'Change password'}</DialogTitle>
+            <DialogTitle>{copy.passwordDialog.title}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="current-pw">{locale === 'ro' ? 'Parola actuala' : 'Current password'}</Label>
-              <Input id="current-pw" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+              <Label htmlFor="current-pw">{copy.account.currentPassword}</Label>
+              <Input id="current-pw" type="password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="new-pw">{locale === 'ro' ? 'Parola noua' : 'New password'}</Label>
-              <Input id="new-pw" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              <Label htmlFor="new-pw">{copy.account.newPassword}</Label>
+              <Input id="new-pw" type="password" value={newPassword} onChange={event => setNewPassword(event.target.value)} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="confirm-pw">{locale === 'ro' ? 'Confirma parola' : 'Confirm password'}</Label>
-              <Input id="confirm-pw" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              <Label htmlFor="confirm-pw">{copy.account.confirmPassword}</Label>
+              <Input id="confirm-pw" type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>{locale === 'ro' ? 'Anuleaza' : 'Cancel'}</Button>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>{copy.passwordDialog.cancel}</Button>
             <Button onClick={handleChangePassword} disabled={isChangingPassword} className="bg-gold text-background hover:bg-gold-light">
-              {isChangingPassword
-                ? (locale === 'ro' ? 'Se salveaza...' : 'Saving...')
-                : (locale === 'ro' ? 'Salveaza' : 'Save')}
+              {isChangingPassword ? copy.passwordDialog.saving : copy.passwordDialog.save}
             </Button>
           </DialogFooter>
         </DialogContent>

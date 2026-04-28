@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
+using System;
+
 namespace SmartHomeManager.Dtos
 {
     public class DeviceCreateDto
@@ -18,6 +20,27 @@ namespace SmartHomeManager.Dtos
         public double Value { get; set; }
 
         public int? RoomId { get; set; }
+
+        [StringLength(100, ErrorMessage = "Categoria nu poate depăși 100 caractere.")]
+        public string? Category { get; set; }
+
+        [StringLength(50, ErrorMessage = "Protocolul nu poate depăși 50 caractere.")]
+        public string? IntegrationProtocol { get; set; }
+
+        [StringLength(50, ErrorMessage = "Transportul nu poate depăși 50 caractere.")]
+        public string? Transport { get; set; }
+
+        [StringLength(200, ErrorMessage = "Identificatorul extern nu poate depăși 200 caractere.")]
+        public string? ExternalDeviceId { get; set; }
+
+        [StringLength(500, ErrorMessage = "Endpoint-ul nu poate depăși 500 caractere.")]
+        public string? Endpoint { get; set; }
+
+        [StringLength(150, ErrorMessage = "Producătorul nu poate depăși 150 caractere.")]
+        public string? Manufacturer { get; set; }
+
+        [StringLength(150, ErrorMessage = "Modelul nu poate depăși 150 caractere.")]
+        public string? Model { get; set; }
     }
 
     public class DeviceReadDto
@@ -29,10 +52,28 @@ namespace SmartHomeManager.Dtos
         public double Value { get; set; }
         public int? RoomId { get; set; }
         public string? RoomName { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string IntegrationProtocol { get; set; } = "simulated";
+        public string? Transport { get; set; }
+        public string? ExternalDeviceId { get; set; }
+        public string? Endpoint { get; set; }
+        public string? Manufacturer { get; set; }
+        public string? Model { get; set; }
+        public DateTime? LastSeenUtc { get; set; }
 
         // Newly added sensor properties
         public double? SensorValue { get; set; }
         public string? SensorUnit { get; set; }
+    }
+
+    public class DeviceIntegrationOptionDto
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string RecommendedFor { get; set; } = string.Empty;
+        public string[] Transports { get; set; } = Array.Empty<string>();
     }
 
     public class DeviceControlDto

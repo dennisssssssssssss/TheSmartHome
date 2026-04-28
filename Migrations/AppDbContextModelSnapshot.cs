@@ -15,7 +15,7 @@ namespace SmartHomeManager.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.4");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
             modelBuilder.Entity("SmartHomeManager.Models.ActivityLog", b =>
                 {
@@ -113,11 +113,43 @@ namespace SmartHomeManager.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Endpoint")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("EstePornit")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ExternalDeviceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IntegrationProtocol")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("simulated");
+
+                    b.Property<DateTime?>("LastSeenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Nume")
                         .IsRequired()
+                        .HasMaxLength(150)
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("RoomId")
@@ -131,6 +163,11 @@ namespace SmartHomeManager.Migrations
 
                     b.Property<string>("Tip")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Transport")
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<double>("Valoare")
@@ -161,6 +198,146 @@ namespace SmartHomeManager.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DeviceEnergyUsages");
+                });
+
+            modelBuilder.Entity("SmartHomeManager.Models.EnergyAsset", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExternalAssetId")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IntegrationProtocol")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntegrationProtocol", "ExternalAssetId")
+                        .IsUnique();
+
+                    b.ToTable("EnergyAssets");
+                });
+
+            modelBuilder.Entity("SmartHomeManager.Models.EnergyTelemetrySample", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("CurrentAmps")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("EnergyAssetId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("EnergyDeltaWh")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("PowerWatts")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("StateOfChargePercent")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("TimestampUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Voltage")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnergyAssetId");
+
+                    b.ToTable("EnergyTelemetrySamples");
+                });
+
+            modelBuilder.Entity("SmartHomeManager.Models.IntegrationBridgeConnection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ApiKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BaseUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastTelemetrySyncStatus")
+                        .HasMaxLength(250)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastTelemetrySyncUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Protocol")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("TelemetrySyncEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TelemetrySyncIntervalMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Protocol")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationBridgeConnections");
                 });
 
             modelBuilder.Entity("SmartHomeManager.Models.Notification", b =>
@@ -257,6 +434,21 @@ namespace SmartHomeManager.Migrations
                         .HasForeignKey("RoomId");
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("SmartHomeManager.Models.EnergyTelemetrySample", b =>
+                {
+                    b.HasOne("SmartHomeManager.Models.EnergyAsset", "EnergyAsset")
+                        .WithMany("TelemetrySamples")
+                        .HasForeignKey("EnergyAssetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("EnergyAsset");
+                });
+
+            modelBuilder.Entity("SmartHomeManager.Models.EnergyAsset", b =>
+                {
+                    b.Navigation("TelemetrySamples");
                 });
 
             modelBuilder.Entity("SmartHomeManager.Models.Room", b =>

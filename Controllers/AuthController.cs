@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SmartHomeManager.Data;
@@ -25,6 +26,7 @@ namespace SmartHomeManager.Controllers
             _db = db;
         }
 
+        [EnableRateLimiting("auth")]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto login)
         {
@@ -47,6 +49,7 @@ namespace SmartHomeManager.Controllers
             return Ok(CreateAuthResponse(user));
         }
 
+        [EnableRateLimiting("auth")]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto register)
         {
@@ -110,6 +113,7 @@ namespace SmartHomeManager.Controllers
         }
 
         [Authorize]
+        [EnableRateLimiting("auth")]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
         {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartHomeManager.Models;
+using SmartHomeManager.Services.Integrations;
 
 namespace SmartHomeManager.Data
 {
@@ -15,6 +16,9 @@ namespace SmartHomeManager.Data
         public DbSet<AutomationExecution> AutomationExecutions { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<EnergyTelemetrySample> EnergyTelemetrySamples { get; set; }
+        public DbSet<EnergyAsset> EnergyAssets { get; set; }
+        public DbSet<IntegrationBridgeConnection> IntegrationBridgeConnections { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +34,51 @@ namespace SmartHomeManager.Data
                 entity.Property(user => user.Email).HasMaxLength(200);
                 entity.Property(user => user.PasswordHash).HasMaxLength(256);
                 entity.Property(user => user.PasswordSalt).HasMaxLength(256);
+            });
+
+            modelBuilder.Entity<Device>(entity =>
+            {
+                entity.Property(device => device.Nume).HasMaxLength(150);
+                entity.Property(device => device.Tip).HasMaxLength(100);
+                entity.Property(device => device.Category).HasMaxLength(100);
+                entity.Property(device => device.IntegrationProtocol)
+                    .HasMaxLength(50)
+                    .HasDefaultValue(DeviceIntegrationConstants.Simulated);
+                entity.Property(device => device.Transport).HasMaxLength(50);
+                entity.Property(device => device.ExternalDeviceId).HasMaxLength(200);
+                entity.Property(device => device.Endpoint).HasMaxLength(500);
+                entity.Property(device => device.Manufacturer).HasMaxLength(150);
+                entity.Property(device => device.Model).HasMaxLength(150);
+            });
+
+            modelBuilder.Entity<EnergyTelemetrySample>(entity =>
+            {
+                entity.Property(sample => sample.SourceType).HasMaxLength(50);
+                entity.HasOne(sample => sample.EnergyAsset)
+                    .WithMany(asset => asset.TelemetrySamples)
+                    .HasForeignKey(sample => sample.EnergyAssetId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<EnergyAsset>(entity =>
+            {
+                entity.HasIndex(asset => new { asset.IntegrationProtocol, asset.ExternalAssetId }).IsUnique();
+                entity.Property(asset => asset.Name).HasMaxLength(150);
+                entity.Property(asset => asset.Kind).HasMaxLength(50);
+                entity.Property(asset => asset.SourceType).HasMaxLength(50);
+                entity.Property(asset => asset.IntegrationProtocol).HasMaxLength(50);
+                entity.Property(asset => asset.ExternalAssetId).HasMaxLength(200);
+                entity.Property(asset => asset.Manufacturer).HasMaxLength(150);
+                entity.Property(asset => asset.Model).HasMaxLength(150);
+            });
+
+            modelBuilder.Entity<IntegrationBridgeConnection>(entity =>
+            {
+                entity.HasIndex(connection => connection.Protocol).IsUnique();
+                entity.Property(connection => connection.Protocol).HasMaxLength(50);
+                entity.Property(connection => connection.BaseUrl).HasMaxLength(500);
+                entity.Property(connection => connection.ApiKey).HasMaxLength(500);
+                entity.Property(connection => connection.LastTelemetrySyncStatus).HasMaxLength(250);
             });
         }
     }

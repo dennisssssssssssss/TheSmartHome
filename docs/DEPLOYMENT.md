@@ -43,3 +43,17 @@ artifacts/publish/<runtime>
 
 - health endpoint: `/health`
 - Swagger UI in development: `/swagger`
+
+## Access from another PC on the same network
+
+For local demos on a second computer, use the LAN-friendly development profile and open the host machine IP over HTTP.
+
+See [LAN access](LAN-ACCESS.md) for the exact steps.
+
+## Public internet access
+
+For a real public deployment, do not expose your development machine directly.
+
+Use a server with a public IP, keep the app behind a reverse proxy, and configure HTTPS on the public domain.
+
+See [Public deployment](PUBLIC-DEPLOYMENT.md).

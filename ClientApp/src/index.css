@@ -136,6 +136,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-body);
     font-weight: 300;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -165,7 +166,7 @@
 
   .page-title {
     font-family: var(--font-display);
-    font-size: 48px;
+    font-size: clamp(2.35rem, 4vw, 3rem);
     font-weight: 300;
     color: var(--foreground);
     line-height: 1.2;
@@ -173,20 +174,20 @@
 
   .hero-title {
     font-family: var(--font-display);
-    font-size: 80px;
+    font-size: clamp(3.2rem, 8vw, 5rem);
     font-weight: 300;
     line-height: 1.1;
   }
 
   .card-title {
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: clamp(1.05rem, 2.4vw, 1.25rem);
     font-weight: 400;
   }
 
   .stat-number {
     font-family: var(--font-display);
-    font-size: 48px;
+    font-size: clamp(2.1rem, 5vw, 3rem);
     font-weight: 300;
     letter-spacing: -1px;
     line-height: 1;
@@ -203,9 +204,11 @@
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  .luxury-card:hover {
-    border-color: rgba(201, 168, 76, 0.35);
-    transform: translateY(-4px);
+  @media (hover: hover) and (pointer: fine) {
+    .luxury-card:hover {
+      border-color: rgba(201, 168, 76, 0.35);
+      transform: translateY(-4px);
+    }
   }
 
   .luxury-card.active {

@@ -314,25 +314,46 @@ export const Automations: React.FC = () => {
     }
   }
 
+  const automationStats = {
+    total: automations.length,
+    enabled: automations.filter((automation) => automation.enabled).length,
+    recurring: automations.filter((automation) => (automation.interval_minutes ?? 0) > 0).length,
+    coveredDevices: new Set(automations.map((automation) => automation.device_id).filter(Boolean)).size,
+  }
+
   if (loading) {
-    return <div className="flex items-center justify-center h-screen"><div className="text-gold section-label">{copy.page.loading}</div></div>
+    return <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4"><div className="text-gold section-label">{copy.page.loading}</div></div>
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="section-label mb-2">{copy.page.eyebrow}</div>
           <h1 className="page-title">{copy.page.title}</h1>
         </div>
-        <Button onClick={openCreateDialog} className="bg-gold text-background hover:bg-gold-light uppercase tracking-wider">
+        <Button onClick={openCreateDialog} className="w-full bg-gold text-background hover:bg-gold-light uppercase tracking-wider sm:w-auto">
           <Plus className="mr-2 size-4" />
           {copy.page.add}
         </Button>
       </div>
 
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: locale === 'ro' ? 'Automatizari totale' : 'Total automations', value: automationStats.total },
+          { label: copy.list.enabled, value: automationStats.enabled },
+          { label: copy.list.repeat, value: automationStats.recurring },
+          { label: locale === 'ro' ? 'Dispozitive acoperite' : 'Covered devices', value: automationStats.coveredDevices },
+        ].map((item) => (
+          <Card key={item.label} className="luxury-card p-5 sm:p-6">
+            <div className="section-label mb-2">{item.label}</div>
+            <div className="font-display text-3xl font-light text-foreground">{item.value}</div>
+          </Card>
+        ))}
+      </div>
+
       {automationCards.length === 0 ? (
-        <Card className="luxury-card p-12 text-center">
+        <Card className="luxury-card p-8 text-center sm:p-12">
           <Sparkles className="mx-auto mb-4 size-12 text-gold" />
           <p className="mb-2 font-display text-2xl text-muted-foreground">{copy.page.emptyTitle}</p>
           <p className="mb-6 font-body text-sm text-muted-foreground">{copy.page.emptyDescription}</p>
@@ -346,12 +367,12 @@ export const Automations: React.FC = () => {
           {automationCards.map(({ automation, device, room, scheduleSummary }) => (
             <Card
               key={automation.id}
-              className="luxury-card p-6"
+              className="luxury-card p-4 sm:p-6"
               style={{ borderLeft: automation.enabled ? '2px solid #C9A84C' : '2px solid #2A2A2A' }}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                 <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex items-center gap-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-3">
                     <h3 className="card-title text-foreground">{automation.name}</h3>
                     <Switch
                       checked={automation.enabled}
@@ -388,7 +409,7 @@ export const Automations: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 self-start lg:self-auto">
                   <Button variant="ghost" size="icon" onClick={() => openEditDialog(automation)} className="text-gold hover:text-gold-light">
                     <Pencil className="size-4" />
                   </Button>
@@ -403,7 +424,7 @@ export const Automations: React.FC = () => {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingAutomation ? copy.dialog.editTitle : copy.dialog.createTitle}</DialogTitle>
           </DialogHeader>

@@ -7,6 +7,7 @@
     <FrontendRoot>ClientApp\</FrontendRoot>
     <FrontendDistRoot>$(FrontendRoot)dist\</FrontendDistRoot>
     <RollForward>LatestMajor</RollForward>
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;deploy\**;artifacts\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +31,13 @@
   </ItemGroup>
 
 	<ItemGroup>
+		<Compile Remove="tests\**\*.cs" />
+		<Content Remove="tests\**" />
+		<EmbeddedResource Remove="tests\**" />
+		<None Remove="tests\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Remove="$(FrontendRoot)**" />
 		<None Remove="$(FrontendRoot)**" />
 		<None Include="$(FrontendRoot)**\*" Exclude="$(FrontendRoot)node_modules\**;$(FrontendRoot)dist\**" />
@@ -41,12 +49,12 @@
 		</Content>
 	</ItemGroup>
 
-	<Target Name="BuildClientApp" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(FrontendRoot)package.json')">
+	<Target Name="BuildClientApp" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipFrontendBuild)' != 'true' and Exists('$(FrontendRoot)package.json')">
 		<Error Condition="!Exists('$(FrontendRoot)node_modules')" Text="ClientApp dependencies are missing. Run npm install in ClientApp." />
 		<Message Text="Building ClientApp..." Importance="high" />
 		<RemoveDir Directories="$(FrontendDistRoot)" Condition="Exists('$(FrontendDistRoot)')" />
 		<RemoveDir Directories="wwwroot\assets" Condition="Exists('wwwroot\assets')" />
-		<Delete Files="wwwroot\index.html;wwwroot\vite.svg" />
+		<Delete Files="wwwroot\index.html;wwwroot\vite.svg;wwwroot\manifest.webmanifest;wwwroot\sw.js;wwwroot\favicon-32.png;wwwroot\apple-touch-icon.png;wwwroot\icon-192.png;wwwroot\icon-512.png;wwwroot\icon-maskable-512.png" />
 		<Exec WorkingDirectory="$(FrontendRoot)" Command="npm run build" />
 
 		<ItemGroup>

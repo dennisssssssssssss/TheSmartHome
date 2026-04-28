@@ -11,7 +11,7 @@ This frontend is the React + Vite client for SmartHome Manager.
 - `src/context` contains app-wide providers such as auth, locale, theme, and search.
 - `src/hooks` contains reusable runtime hooks shared across features.
 - `src/lib/api.ts` contains API access.
-- `src/lib/i18n/content.ts` contains centralized user-facing copy for shared surfaces.
+- `src/lib/i18n` contains centralized user-facing copy grouped by product area.
 - `src/lib` contains preferences, helpers, and domain utilities.
 - `src/types` contains shared frontend types.
 
@@ -27,7 +27,7 @@ This frontend is the React + Vite client for SmartHome Manager.
 ## Ownership guidelines
 
 - navigation, shell states, and page loading belong in `src/components/layouts`
-- product copy that is reused belongs in `src/lib/i18n/content.ts`
+- shared or locale-aware product copy belongs in `src/lib/i18n/`
 - backend integration belongs in `src/lib/api.ts`
 - page-specific orchestration belongs in the page component
 
@@ -38,11 +38,18 @@ You can create a local `.env` file based on `.env.example`.
 - `VITE_API_BASE_URL`
   Overrides the default API host used by the frontend.
 
+Install frontend dependencies before the first backend build:
+
+```powershell
+npm install
+```
+
 ## Generated files
 
 The following outputs are generated locally and should not be committed:
 
 - `dist/`
+- `.env`
 - `../wwwroot/assets/`
 - `../wwwroot/index.html`
 - `../wwwroot/vite.svg`

@@ -1,52 +1,58 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
-import { Button } from '@/components/ui/button'
 import { useI18n } from '@/context/I18nContext'
 import { getShellContent } from '@/lib/i18n/content'
 
 interface AppSidebarProps {
   isCollapsed: boolean
+  isDesktop: boolean
+  isMobileOpen: boolean
+  onNavigate: () => void
 }
 
-export const AppSidebar: React.FC<AppSidebarProps> = ({ isCollapsed }) => {
+export const AppSidebar: React.FC<AppSidebarProps> = ({
+  isCollapsed,
+  isDesktop,
+  isMobileOpen,
+  onNavigate,
+}) => {
   const location = useLocation()
-  const { username, logout } = useAuth()
   const { locale } = useI18n()
   const shellContent = getShellContent(locale)
-  const navItems = shellContent.navItems
-
-  const getInitials = (name: string | null) => {
-    if (!name) return 'A'
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
+  const brandAriaLabel = locale === 'ro' ? 'Mergi la pagina principală' : 'Go to home page'
+  const navItems = shellContent.navItems.filter(
+    (item) => item.path !== '/app/notifications' && item.path !== '/app/settings',
+  )
+  const shouldCollapse = isDesktop && isCollapsed
 
   return (
     <div
-      className={`fixed left-0 top-0 h-screen bg-background border-r transition-all duration-600 ease-in-out ${
-        isCollapsed ? 'w-14' : 'w-60'
+      className={`fixed left-0 top-0 z-40 h-screen bg-background border-r transition-all duration-300 ease-in-out ${
+        isDesktop
+          ? shouldCollapse ? 'w-14 translate-x-0' : 'w-60 translate-x-0'
+          : `w-[18rem] ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`
       }`}
       style={{ borderColor: 'rgba(201, 168, 76, 0.1)' }}
     >
       <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center justify-center border-b px-4" style={{ borderColor: 'rgba(201, 168, 76, 0.1)' }}>
-          {!isCollapsed && (
+        <Link
+          to="/"
+          onClick={onNavigate}
+          className="flex h-16 items-center justify-center border-b px-4 transition-colors hover:bg-sidebar-accent/50"
+          style={{ borderColor: 'rgba(201, 168, 76, 0.1)' }}
+          aria-label={brandAriaLabel}
+        >
+          {!shouldCollapse && (
             <h1 className="font-display text-xl tracking-wider text-gold">
               NEXUS HOME
             </h1>
           )}
-          {isCollapsed && (
+          {shouldCollapse && (
             <span className="font-display text-xl text-gold">N</span>
           )}
-        </div>
+        </Link>
 
-        {!isCollapsed && (
+        {!shouldCollapse && (
           <div className="h-px bg-gold my-2 mx-4" style={{ opacity: 0.3 }} />
         )}
 
@@ -59,54 +65,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isCollapsed }) => {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={onNavigate}
                 className={`flex items-center gap-3 px-3 py-2 text-sm font-body uppercase tracking-wider transition-all duration-400 ${
                   isActive
                     ? 'text-gold-light bg-sidebar-accent border-l-2 border-gold'
                     : 'text-muted-foreground hover:text-gold-light hover:bg-sidebar-accent/50'
-                } ${isCollapsed ? 'justify-center' : ''}`}
+                } ${shouldCollapse ? 'justify-center' : ''}`}
                 style={{
-                  fontSize: isCollapsed ? '16px' : '13px',
-                  letterSpacing: isCollapsed ? '0' : '0.15em',
+                  fontSize: shouldCollapse ? '16px' : '13px',
+                  letterSpacing: shouldCollapse ? '0' : '0.15em',
                 }}
               >
-                <Icon className={`shrink-0 ${isCollapsed ? 'size-5' : 'size-4'}`} />
-                {!isCollapsed && <span>{item.label}</span>}
+                <Icon className={`shrink-0 ${shouldCollapse ? 'size-5' : 'size-4'}`} />
+                {!shouldCollapse && <span>{item.label}</span>}
               </Link>
             )
           })}
         </nav>
-
-        <div className="border-t p-4" style={{ borderColor: 'rgba(201, 168, 76, 0.1)' }}>
-          {!isCollapsed ? (
-            <div className="flex items-center gap-3">
-              <div
-                className="flex size-10 shrink-0 items-center justify-center rounded-full border text-gold bg-background"
-                style={{ borderColor: 'rgba(201, 168, 76, 0.3)' }}
-              >
-                <span className="text-sm font-body">{getInitials(username)}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-body text-foreground">{username || 'Admin'}</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={logout}
-                  className="mt-1 h-auto p-0 text-xs text-muted-foreground hover:text-gold"
-                >
-                  <LogOut className="mr-1 size-3" />
-                  {shellContent.signOut}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={logout}
-              className="flex w-full items-center justify-center text-muted-foreground hover:text-gold transition-colors"
-            >
-              <LogOut className="size-5" />
-            </button>
-          )}
-        </div>
       </div>
     </div>
   )

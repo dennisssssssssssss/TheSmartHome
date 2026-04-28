@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/SmartHomeManager.Tests/SmartHomeManager.Tests.csproj" />
+  </Folder>
+  <Project Path="SmartHomeManager.csproj" />
+</Solution>

@@ -36,23 +36,58 @@ The technical codebase, naming, and documentation are kept in English. The produ
 
 ### Prerequisites
 
-- .NET 8 SDK recommended
-- Node.js
+- .NET SDK `9.0.311` or a compatible SDK accepted by `global.json`
+- Node.js 20+ recommended
 - Visual Studio or Visual Studio Insiders
 
 ### Run locally
 
-1. Open `SmartHomeManager.slnx` in Visual Studio.
-2. Start the `SmartHomeManager` project.
-3. Use one of the launch URLs shown in the console:
+1. Install frontend dependencies once:
+
+   ```powershell
+   cd ClientApp
+   npm install
+   ```
+
+2. Open `SmartHomeManager.slnx` in Visual Studio, or run the backend from the repository root with:
+
+   ```powershell
+   dotnet run --project SmartHomeManager.csproj
+   ```
+
+3. Start the `SmartHomeManager` project.
+4. Use one of the launch URLs shown in the console:
    - `http://localhost:5110`
    - `https://localhost:7139`
+
+For a LAN demo from another PC on the same network:
+
+1. Start the app normally.
+2. Run `.\scripts\show-access-links.ps1` on the host machine.
+3. Open the printed `http://<your-ip>:5110` URL from the second PC.
+
+For the full walkthrough, see [LAN access](docs/LAN-ACCESS.md).
 
 On startup the application automatically:
 
 - applies Entity Framework migrations
 - creates `smarthome.db` when it is missing
 - seeds the default admin user and baseline data when needed
+
+### Quick verification on a fresh clone
+
+From the repository root:
+
+```powershell
+cd ClientApp
+npm install
+npm run typecheck
+cd ..
+dotnet build SmartHomeManager.csproj
+dotnet test tests\SmartHomeManager.Tests\SmartHomeManager.Tests.csproj -c Release -p:SkipFrontendBuild=true
+```
+
+If these commands pass, the repo is in the expected demo-ready state.
 
 ### Portable deployment
 
@@ -63,8 +98,11 @@ For machines without a local .NET installation, publish a self-contained build:
 ```
 
 For deployment details, see [Deployment](docs/DEPLOYMENT.md).
+For a real public server rollout, see [Public deployment](docs/PUBLIC-DEPLOYMENT.md).
 
 ### Default credentials
+
+Available only when default admin seeding is enabled, which is the development default.
 
 - Username: `admin`
 - Password: `assist2026`
@@ -82,6 +120,7 @@ For deployment details, see [Deployment](docs/DEPLOYMENT.md).
 - `Models/` contains domain entities
 - `Repositories/` contains persistence abstractions and implementations
 - `Services/` contains business logic, notifications, and scheduling
+- `tests/` contains backend unit and integration-style tests
 - `wwwroot/` contains generated frontend assets copied during build
 
 ## Project docs
@@ -89,8 +128,18 @@ For deployment details, see [Deployment](docs/DEPLOYMENT.md).
 - [Repository structure](docs/REPOSITORY-STRUCTURE.md)
 - [API quickstart](docs/API-QUICKSTART.md)
 - [Deployment](docs/DEPLOYMENT.md)
+- [LAN access](docs/LAN-ACCESS.md)
+- [Public deployment](docs/PUBLIC-DEPLOYMENT.md)
+- [Product roadmap](docs/PRODUCT-ROADMAP.md)
+- [Device connectivity strategy](docs/DEVICE-CONNECTIVITY.md)
 - [ClientApp architecture](ClientApp/README.md)
 - [HTTP request samples](SmartHomeManager.http)
+
+## Quality guardrails
+
+- GitHub Actions CI validates frontend type-checking, backend build, and backend tests
+- backend tests cover auth, password hashing, security notifications, and recurring automations
+- user-facing copy is centralized under `ClientApp/src/lib/i18n/`
 
 ## Build output policy
 

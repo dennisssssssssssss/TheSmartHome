@@ -8,6 +8,7 @@ using SmartHomeManager.Dtos;
 using SmartHomeManager.Models;
 using SmartHomeManager.Services;
 using SmartHomeManager.Hubs;
+using SmartHomeManager.Services.Integrations;
 using Microsoft.AspNetCore.Authorization;
 
 // Alias the DTO type to avoid ambiguity with a model type having the same name
@@ -29,19 +30,25 @@ namespace SmartHomeManager.Controllers
         private readonly ISecurityNotificationService _securityNotificationService;
         private readonly IHubContext<SmartHomeHub> _hubContext;
         private readonly IRoomService _roomService; // kept for compatibility with application services
+        private readonly IDeviceIntegrationCatalogService _integrationCatalog;
+        private readonly IMatterBridgeClient _matterBridgeClient;
 
         public DevicesController(
             AppDbContext db,
             IDeviceControlService deviceControl,
             ISecurityNotificationService securityNotificationService,
             IHubContext<SmartHomeHub> hubContext,
-            IRoomService roomService)
+            IRoomService roomService,
+            IDeviceIntegrationCatalogService integrationCatalog,
+            IMatterBridgeClient matterBridgeClient)
         {
             _db = db;
             _deviceControl = deviceControl;
             _securityNotificationService = securityNotificationService;
             _hubContext = hubContext;
             _roomService = roomService;
+            _integrationCatalog = integrationCatalog;
+            _matterBridgeClient = matterBridgeClient;
         }
 
         /// <summary>
@@ -65,6 +72,14 @@ namespace SmartHomeManager.Controllers
                 Value = d.Valoare,
                 RoomId = d.RoomId,
                 RoomName = d.Room?.Name,
+                Category = d.Category,
+                IntegrationProtocol = d.IntegrationProtocol,
+                Transport = d.Transport,
+                ExternalDeviceId = d.ExternalDeviceId,
+                Endpoint = d.Endpoint,
+                Manufacturer = d.Manufacturer,
+                Model = d.Model,
+                LastSeenUtc = d.LastSeenUtc,
                 SensorValue = d.SensorValue,
                 SensorUnit = d.SensorUnit
             }).ToList();
@@ -95,6 +110,14 @@ namespace SmartHomeManager.Controllers
                 Value = d.Valoare,
                 RoomId = d.RoomId,
                 RoomName = d.Room?.Name,
+                Category = d.Category,
+                IntegrationProtocol = d.IntegrationProtocol,
+                Transport = d.Transport,
+                ExternalDeviceId = d.ExternalDeviceId,
+                Endpoint = d.Endpoint,
+                Manufacturer = d.Manufacturer,
+                Model = d.Model,
+                LastSeenUtc = d.LastSeenUtc,
                 SensorValue = d.SensorValue,
                 SensorUnit = d.SensorUnit
             };
@@ -117,6 +140,13 @@ namespace SmartHomeManager.Controllers
             {
                 Nume = dto.Name,
                 Tip = dto.Type,
+                Category = DeviceTaxonomy.ResolveCategory(dto.Category, dto.Type),
+                IntegrationProtocol = DeviceIntegrationConstants.NormalizeProtocol(dto.IntegrationProtocol),
+                Transport = DeviceIntegrationConstants.NormalizeTransport(dto.Transport),
+                ExternalDeviceId = string.IsNullOrWhiteSpace(dto.ExternalDeviceId) ? null : dto.ExternalDeviceId.Trim(),
+                Endpoint = string.IsNullOrWhiteSpace(dto.Endpoint) ? null : dto.Endpoint.Trim(),
+                Manufacturer = string.IsNullOrWhiteSpace(dto.Manufacturer) ? null : dto.Manufacturer.Trim(),
+                Model = string.IsNullOrWhiteSpace(dto.Model) ? null : dto.Model.Trim(),
                 EstePornit = dto.IsOn,
                 Valoare = dto.Value,
                 RoomId = dto.RoomId
@@ -135,6 +165,14 @@ namespace SmartHomeManager.Controllers
                 Value = device.Valoare,
                 RoomId = device.RoomId,
                 RoomName = (await _db.Rooms.FindAsync(device.RoomId))?.Name,
+                Category = device.Category,
+                IntegrationProtocol = device.IntegrationProtocol,
+                Transport = device.Transport,
+                ExternalDeviceId = device.ExternalDeviceId,
+                Endpoint = device.Endpoint,
+                Manufacturer = device.Manufacturer,
+                Model = device.Model,
+                LastSeenUtc = device.LastSeenUtc,
                 SensorValue = device.SensorValue,
                 SensorUnit = device.SensorUnit
             };
@@ -173,6 +211,13 @@ namespace SmartHomeManager.Controllers
             // Map DTO fields into EF model (Romanian properties)
             existingDevice.Nume = dto.Name;
             existingDevice.Tip = dto.Type;
+            existingDevice.Category = DeviceTaxonomy.ResolveCategory(dto.Category, dto.Type);
+            existingDevice.IntegrationProtocol = DeviceIntegrationConstants.NormalizeProtocol(dto.IntegrationProtocol);
+            existingDevice.Transport = DeviceIntegrationConstants.NormalizeTransport(dto.Transport);
+            existingDevice.ExternalDeviceId = string.IsNullOrWhiteSpace(dto.ExternalDeviceId) ? null : dto.ExternalDeviceId.Trim();
+            existingDevice.Endpoint = string.IsNullOrWhiteSpace(dto.Endpoint) ? null : dto.Endpoint.Trim();
+            existingDevice.Manufacturer = string.IsNullOrWhiteSpace(dto.Manufacturer) ? null : dto.Manufacturer.Trim();
+            existingDevice.Model = string.IsNullOrWhiteSpace(dto.Model) ? null : dto.Model.Trim();
             existingDevice.EstePornit = dto.IsOn;
             existingDevice.Valoare = dto.Value;
             existingDevice.RoomId = dto.RoomId;
@@ -204,11 +249,71 @@ namespace SmartHomeManager.Controllers
                 Value = existingDevice.Valoare,
                 RoomId = existingDevice.RoomId,
                 RoomName = (await _db.Rooms.FindAsync(existingDevice.RoomId))?.Name,
+                Category = existingDevice.Category,
+                IntegrationProtocol = existingDevice.IntegrationProtocol,
+                Transport = existingDevice.Transport,
+                ExternalDeviceId = existingDevice.ExternalDeviceId,
+                Endpoint = existingDevice.Endpoint,
+                Manufacturer = existingDevice.Manufacturer,
+                Model = existingDevice.Model,
+                LastSeenUtc = existingDevice.LastSeenUtc,
                 SensorValue = existingDevice.SensorValue,
                 SensorUnit = existingDevice.SensorUnit
             };
 
             return Ok(readDto);
+        }
+
+        [HttpGet("integration-options")]
+        public ActionResult<IEnumerable<DeviceIntegrationOptionDto>> GetIntegrationOptions()
+        {
+            var options = _integrationCatalog.GetOptions()
+                .Select(option => new DeviceIntegrationOptionDto
+                {
+                    Code = option.Code,
+                    Label = option.Label,
+                    Status = option.Status,
+                    Description = option.Description,
+                    RecommendedFor = option.RecommendedFor,
+                    Transports = option.Transports
+                })
+                .ToList();
+
+            return Ok(options);
+        }
+
+        [HttpPost("pair/matter")]
+        public async Task<ActionResult<MatterPairingResponseDto>> PairMatterDevice([FromBody] MatterPairingRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _matterBridgeClient.PairDeviceAsync(
+                new MatterPairingRequest
+                {
+                    PairingCode = request.PairingCode.Trim(),
+                    SuggestedName = string.IsNullOrWhiteSpace(request.Name) ? null : request.Name.Trim(),
+                    SuggestedType = string.IsNullOrWhiteSpace(request.Type) ? null : request.Type.Trim(),
+                    Transport = DeviceIntegrationConstants.NormalizeTransport(request.Transport) ?? DeviceIntegrationConstants.Wifi,
+                },
+                string.IsNullOrWhiteSpace(request.BridgeBaseUrl)
+                    ? null
+                    : new BridgeConnectionOverride { BaseUrl = request.BridgeBaseUrl });
+
+            return Ok(new MatterPairingResponseDto
+            {
+                ExternalDeviceId = result.ExternalDeviceId,
+                SuggestedName = result.SuggestedName,
+                SuggestedType = result.SuggestedType,
+                Manufacturer = result.Manufacturer,
+                Model = result.Model,
+                Endpoint = result.Endpoint,
+                Transport = result.Transport,
+                Protocol = DeviceIntegrationConstants.Matter,
+                IsReachable = result.IsReachable,
+            });
         }
 
         /// <summary>

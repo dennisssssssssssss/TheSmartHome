@@ -1,0 +1,35 @@
+[Unit]
+Description=SmartHome Manager
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/smarthomemanager
+ExecStart=/opt/smarthomemanager/SmartHomeManager
+Restart=always
+RestartSec=5
+SyslogIdentifier=smarthomemanager
+User=smarthome
+Group=smarthome
+EnvironmentFile=/opt/smarthomemanager/.env
+Environment=RuntimePaths__LogsDirectory=/var/log/smarthomemanager
+Environment=RuntimePaths__DataProtectionKeysDirectory=/var/lib/smarthomemanager/keys
+StateDirectory=smarthomemanager
+LogsDirectory=smarthomemanager
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+ReadWritePaths=/opt/smarthomemanager /var/lib/smarthomemanager /var/log/smarthomemanager
+
+[Install]
+WantedBy=multi-user.target
