@@ -1,4 +1,7 @@
 <Solution>
+  <Project Path="SmartHomeManager.Domain/SmartHomeManager.Domain.csproj" />
+  <Project Path="SmartHomeManager.Application/SmartHomeManager.Application.csproj" />
+  <Project Path="SmartHomeManager.Infrastructure/SmartHomeManager.Infrastructure.csproj" />
   <Folder Name="/tests/">
     <Project Path="tests/SmartHomeManager.Tests/SmartHomeManager.Tests.csproj" />
   </Folder>

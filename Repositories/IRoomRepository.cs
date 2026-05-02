@@ -4,12 +4,9 @@ using SmartHomeManager.Models;
 
 namespace SmartHomeManager.Repositories
 {
-    public interface IRoomRepository
+    public interface IRoomRepository : IRepository<Room>
     {
         Task<List<Room>> GetAllWithDevicesAsync();
         Task<Room?> GetByIdWithDevicesAsync(int id);
-        Task<Room> AddAsync(Room room);
-        Task UpdateAsync(Room room);
-        Task DeleteAsync(Room room);
     }
 }

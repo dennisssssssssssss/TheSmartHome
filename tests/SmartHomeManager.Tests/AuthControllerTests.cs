@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using SmartHomeManager.Controllers;
+using SmartHomeManager.Dtos;
+using SmartHomeManager.Infrastructure.Repositories;
+using SmartHomeManager.Infrastructure.Security;
 using SmartHomeManager.Models;
 using SmartHomeManager.Services;
 using SmartHomeManager.Tests.Infrastructure;
@@ -31,7 +34,7 @@ public sealed class AuthControllerTests
         var (db, connection) = TestDbFactory.CreateContext();
         await using var _ = db;
         await using var __ = connection;
-        var controller = new AuthController(CreateConfiguration(), db);
+        var controller = CreateController(db);
 
         var result = await controller.Register(new RegisterDto
         {
@@ -70,17 +73,15 @@ public sealed class AuthControllerTests
         });
         await db.SaveChangesAsync();
 
-        var controller = new AuthController(CreateConfiguration(), db)
+        var controller = CreateController(db);
+        controller.ControllerContext = new ControllerContext
         {
-            ControllerContext = new ControllerContext
+            HttpContext = new DefaultHttpContext
             {
-                HttpContext = new DefaultHttpContext
-                {
-                    User = new ClaimsPrincipal(new ClaimsIdentity(
-                    [
-                        new Claim(JwtRegisteredClaimNames.UniqueName, "admin"),
-                    ], "TestAuth")),
-                },
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                [
+                    new Claim(JwtRegisteredClaimNames.UniqueName, "admin"),
+                ], "TestAuth")),
             },
         };
 
@@ -95,5 +96,14 @@ public sealed class AuthControllerTests
         var savedUser = await db.Users.SingleAsync();
         Assert.True(PasswordService.VerifyPassword("NewPassword123!", savedUser.PasswordSalt, savedUser.PasswordHash));
         Assert.False(PasswordService.VerifyPassword("OldPassword123!", savedUser.PasswordSalt, savedUser.PasswordHash));
+    }
+
+    private static AuthController CreateController(Data.AppDbContext db)
+    {
+        var configuration = CreateConfiguration();
+        var userRepository = new UserRepository(db);
+        var tokenService = new JwtTokenService(configuration);
+        var authService = new AuthService(userRepository, tokenService);
+        return new AuthController(authService);
     }
 }

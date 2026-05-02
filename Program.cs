@@ -12,7 +12,10 @@ using Serilog;
 using Serilog.Events;
 using SmartHomeManager.Data;
 using SmartHomeManager.Hubs;
+using SmartHomeManager.Infrastructure.Repositories;
+using SmartHomeManager.Infrastructure.Security;
 using SmartHomeManager.Middleware;
+using SmartHomeManager.Mapping;
 using SmartHomeManager.Models;
 using SmartHomeManager.Options;
 using SmartHomeManager.Services;
@@ -142,6 +145,7 @@ try
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
+    builder.Services.AddAutoMapper(_ => { }, typeof(EntityMappingProfile).Assembly);
     builder.Services.Configure<SecurityHeadersOptions>(builder.Configuration.GetSection("SecurityHeaders"));
     builder.Services.AddDataProtection()
         .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
@@ -200,7 +204,24 @@ try
     }
 
     builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, SmartHomeManager.Repositories.RoomRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IUserRepository, UserRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IDeviceRepository, DeviceRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IAutomationRuleRepository, AutomationRuleRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.INotificationRepository, NotificationRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IActivityLogRepository, ActivityLogRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IDeviceEnergyUsageRepository, DeviceEnergyUsageRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IEnergyAssetRepository, EnergyAssetRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IEnergyTelemetrySampleRepository, EnergyTelemetrySampleRepository>();
     builder.Services.AddScoped<SmartHomeManager.Services.IRoomService, SmartHomeManager.Services.RoomService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IAuthService, SmartHomeManager.Services.AuthService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IJwtTokenService, JwtTokenService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IDeviceService, SmartHomeManager.Services.DeviceService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IAutomationService, SmartHomeManager.Services.AutomationService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.INotificationService, SmartHomeManager.Services.NotificationService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.ILogService, SmartHomeManager.Services.LogService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IEnergyService, SmartHomeManager.Services.EnergyService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IIntegrationService, SmartHomeManager.Services.IntegrationService>();
+    builder.Services.AddScoped<SmartHomeManager.Services.IRealtimeEventPublisher, SmartHomeManager.Services.RealtimeEventPublisher>();
     builder.Services.AddScoped<SmartHomeManager.Services.IDeviceControlService, SmartHomeManager.Services.DeviceControlService>();
     builder.Services.AddScoped<SmartHomeManager.Services.ISecurityNotificationService, SmartHomeManager.Services.SecurityNotificationService>();
     builder.Services.AddSingleton<IProtectedSecretService, DataProtectionSecretService>();

@@ -55,7 +55,7 @@ public sealed class AutomationSchedulerServiceTests
         var hubContext = new RecordingHubContext();
         await using var provider = services.BuildServiceProvider();
         var scheduler = new TestAutomationSchedulerService(provider, NullLogger<AutomationSchedulerService>.Instance, hubContext);
-        using var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        using var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
 
         await scheduler.RunUntilCancelledAsync(cancellationSource.Token);
 

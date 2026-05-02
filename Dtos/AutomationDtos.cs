@@ -2,12 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SmartHomeManager.Dtos
 {
-    public class AutomationCreateDto
+    public class AutomationUpsertDto
     {
         [Required]
         public string Name { get; set; } = string.Empty;
-        [Required]
-        public int DeviceId { get; set; }
+        public int? DeviceId { get; set; }
+        public int? RoomId { get; set; }
         [Required]
         public string Action { get; set; } = string.Empty;
         public double? Value { get; set; }
@@ -20,7 +20,8 @@ namespace SmartHomeManager.Dtos
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public int DeviceId { get; set; }
+        public int? DeviceId { get; set; }
+        public int? RoomId { get; set; }
         public string Action { get; set; } = string.Empty;
         public double? Value { get; set; }
         public DateTime NextRunUtc { get; set; }

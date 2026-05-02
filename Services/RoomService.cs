@@ -1,6 +1,7 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
+using SmartHomeManager.Common;
 using SmartHomeManager.Dtos;
 using SmartHomeManager.Models;
 using SmartHomeManager.Repositories;
@@ -10,70 +11,62 @@ namespace SmartHomeManager.Services
     public class RoomService : IRoomService
     {
         private readonly IRoomRepository _repo;
+        private readonly IMapper _mapper;
 
-        public RoomService(IRoomRepository repo)
+        public RoomService(IRoomRepository repo, IMapper mapper)
         {
             _repo = repo;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<RoomReadDto>> GetRoomsAsync()
+        public async Task<ServiceResult<IReadOnlyList<RoomReadDto>>> GetRoomsAsync(CancellationToken cancellationToken = default)
         {
             var rooms = await _repo.GetAllWithDevicesAsync();
-            return rooms.Select(r => MapToReadDto(r)).ToList();
+            return ServiceResult<IReadOnlyList<RoomReadDto>>.Success(
+                _mapper.Map<IReadOnlyList<RoomReadDto>>(rooms));
         }
 
-        public async Task<RoomReadDto?> GetRoomAsync(int id)
+        public async Task<ServiceResult<RoomReadDto>> GetRoomAsync(int id, CancellationToken cancellationToken = default)
         {
             var r = await _repo.GetByIdWithDevicesAsync(id);
-            return r == null ? null : MapToReadDto(r);
+            return r == null
+                ? ServiceResult<RoomReadDto>.NotFound("Room was not found.")
+                : ServiceResult<RoomReadDto>.Success(_mapper.Map<RoomReadDto>(r));
         }
 
-        public async Task<RoomReadDto> CreateRoomAsync(RoomCreateDto dto)
+        public async Task<ServiceResult<RoomReadDto>> CreateRoomAsync(RoomCreateDto dto, CancellationToken cancellationToken = default)
         {
             var room = new Room { Name = dto.Name };
-            var created = await _repo.AddAsync(room);
-            return MapToReadDto(created);
+            await _repo.AddAsync(room, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+            return ServiceResult<RoomReadDto>.Success(_mapper.Map<RoomReadDto>(room));
         }
 
-        public async Task<bool> UpdateRoomAsync(int id, RoomCreateDto dto)
+        public async Task<ServiceResult> UpdateRoomAsync(int id, RoomCreateDto dto, CancellationToken cancellationToken = default)
         {
             var room = await _repo.GetByIdWithDevicesAsync(id);
-            if (room == null) return false;
-            room.Name = dto.Name;
-            await _repo.UpdateAsync(room);
-            return true;
-        }
-
-        public async Task<bool> DeleteRoomAsync(int id)
-        {
-            var room = await _repo.GetByIdWithDevicesAsync(id);
-            if (room == null) return false;
-            await _repo.DeleteAsync(room);
-            return true;
-        }
-
-        private static RoomReadDto MapToReadDto(Room r)
-        {
-            return new RoomReadDto
+            if (room == null)
             {
-                Id = r.Id,
-                Name = r.Name,
-                DeviceCount = r.Devices?.Count ?? 0,
-                Devices = r.Devices == null
-                    ? new List<DeviceReadDto>()
-                    : r.Devices.Select(d => new DeviceReadDto
-                    {
-                        Id = d.Id,
-                        Name = d.Nume,
-                        Type = d.Tip,
-                        IsOn = d.EstePornit,
-                        Value = d.Valoare,
-                        RoomId = d.RoomId,
-                        RoomName = r.Name,
-                        SensorValue = d.SensorValue,
-                        SensorUnit = d.SensorUnit
-                    }).ToList()
-            };
+                return ServiceResult.NotFound("Room was not found.");
+            }
+
+            room.Name = dto.Name;
+            _repo.Update(room);
+            await _repo.SaveChangesAsync(cancellationToken);
+            return ServiceResult.Success();
+        }
+
+        public async Task<ServiceResult> DeleteRoomAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var room = await _repo.GetByIdWithDevicesAsync(id);
+            if (room == null)
+            {
+                return ServiceResult.NotFound("Room was not found.");
+            }
+
+            _repo.Delete(room);
+            await _repo.SaveChangesAsync(cancellationToken);
+            return ServiceResult.Success();
         }
     }
 }

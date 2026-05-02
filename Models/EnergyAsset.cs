@@ -1,8 +1,7 @@
 namespace SmartHomeManager.Models;
 
-public sealed class EnergyAsset
+public sealed class EnergyAsset : BaseEntity
 {
-    public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
     public string SourceType { get; set; } = string.Empty;

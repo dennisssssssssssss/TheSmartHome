@@ -2,10 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SmartHomeManager.Models
 {
-    public class AutomationRule
+    public class AutomationRule : BaseEntity
     {
-        public int Id { get; set; }
-
         [Required]
         public string Name { get; set; } = string.Empty;
 

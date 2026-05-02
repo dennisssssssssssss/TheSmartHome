@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using SmartHomeManager.Data;
-using SmartHomeManager.Hubs;
-using SmartHomeManager.Models;
+using SmartHomeManager.Dtos;
+using SmartHomeManager.Extensions;
+using SmartHomeManager.Services;
 
 namespace SmartHomeManager.Controllers
 {
@@ -13,64 +11,39 @@ namespace SmartHomeManager.Controllers
     [ApiController]
     public class NotificationsController : ControllerBase
     {
-        private readonly AppDbContext _db;
-        private readonly IHubContext<SmartHomeHub> _hubContext;
+        private readonly INotificationService _notificationService;
 
-        public NotificationsController(AppDbContext db, IHubContext<SmartHomeHub> hubContext)
+        public NotificationsController(INotificationService notificationService)
         {
-            _db = db;
-            _hubContext = hubContext;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Notification>>> GetAll()
+        public async Task<ActionResult<IEnumerable<NotificationReadDto>>> GetAll()
         {
-            var notifications = await _db.Notifications
-                .AsNoTracking()
-                .OrderByDescending(n => n.CreatedAt)
-                .ToListAsync();
-
-            return Ok(notifications);
+            var result = await _notificationService.GetAllAsync(HttpContext.RequestAborted);
+            return Ok(result.Data);
         }
 
         [HttpPut("{id}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            var notification = await _db.Notifications.FindAsync(id);
-            if (notification == null) return NotFound();
-
-            notification.Read = true;
-            await _db.SaveChangesAsync();
-
-            await _hubContext.Clients.All.SendAsync("NotificationUpdated");
-
-            return NoContent();
+            var result = await _notificationService.MarkAsReadAsync(id, HttpContext.RequestAborted);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("read-all")]
         public async Task<IActionResult> MarkAllAsRead()
         {
-            await _db.Notifications
-                .Where(n => !n.Read)
-                .ExecuteUpdateAsync(s => s.SetProperty(n => n.Read, true));
-
-            await _hubContext.Clients.All.SendAsync("NotificationUpdated");
-
-            return NoContent();
+            var result = await _notificationService.MarkAllAsReadAsync(HttpContext.RequestAborted);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var notification = await _db.Notifications.FindAsync(id);
-            if (notification == null) return NotFound();
-
-            _db.Notifications.Remove(notification);
-            await _db.SaveChangesAsync();
-
-            await _hubContext.Clients.All.SendAsync("NotificationUpdated");
-
-            return NoContent();
+            var result = await _notificationService.DeleteAsync(id, HttpContext.RequestAborted);
+            return this.ToActionResult(result);
         }
     }
 }

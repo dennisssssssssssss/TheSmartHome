@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartHomeManager.Data;
-using SmartHomeManager.Models;
 using Microsoft.AspNetCore.Authorization;
-
+using Microsoft.AspNetCore.Mvc;
+using SmartHomeManager.Dtos;
+using SmartHomeManager.Extensions;
+using SmartHomeManager.Services;
 
 namespace SmartHomeManager.Controllers
 {
@@ -12,97 +11,61 @@ namespace SmartHomeManager.Controllers
     [ApiController]
     public class AutomationsController : ControllerBase
     {
-        private readonly AppDbContext _db;
+        private readonly IAutomationService _automationService;
 
-        private static DateTime NormalizeUtc(DateTime value)
+        public AutomationsController(IAutomationService automationService)
         {
-            return value.Kind switch
-            {
-                DateTimeKind.Utc => value,
-                DateTimeKind.Local => value.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
-            };
-        }
-
-        public AutomationsController(AppDbContext db)
-        {
-            _db = db;
+            _automationService = automationService;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AutomationRule>>> GetAll()
+        public async Task<ActionResult<IEnumerable<AutomationReadDto>>> GetAll()
         {
-            var rules = await _db.AutomationRules.AsNoTracking().ToListAsync();
-            return Ok(rules);
+            var result = await _automationService.GetAllAsync(HttpContext.RequestAborted);
+            return Ok(result.Data);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<AutomationRule>> Get(int id)
+        public async Task<ActionResult<AutomationReadDto>> Get(int id)
         {
-            var rule = await _db.AutomationRules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
-            if (rule == null) return NotFound();
-            return Ok(rule);
+            var result = await _automationService.GetAsync(id, HttpContext.RequestAborted);
+            return this.ToActionResult(result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<AutomationRule>> Create([FromBody] AutomationRule rule)
+        public async Task<ActionResult<AutomationReadDto>> Create([FromBody] AutomationUpsertDto dto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            rule.DeviceId = rule.DeviceId > 0 ? rule.DeviceId : null;
-            rule.RoomId = rule.RoomId > 0 ? rule.RoomId : null;
-            rule.IntervalMinutes = Math.Max(0, rule.IntervalMinutes);
-            rule.NextRunUtc = NormalizeUtc(rule.NextRunUtc);
-
-            if (!rule.DeviceId.HasValue && !rule.RoomId.HasValue)
+            if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "Automation must target a device or a room." });
+                return BadRequest(ModelState);
             }
 
-            _db.AutomationRules.Add(rule);
-            await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = rule.Id }, rule);
+            var result = await _automationService.CreateAsync(dto, HttpContext.RequestAborted);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                return this.ToActionResult(result);
+            }
+
+            return CreatedAtAction(nameof(Get), new { id = result.Data.Id }, result.Data);
         }
 
-        // Explicit PUT to update allowed fields
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] AutomationRule dto)
+        public async Task<IActionResult> Update(int id, [FromBody] AutomationUpsertDto dto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var rule = await _db.AutomationRules.FindAsync(id);
-            if (rule == null) return NotFound();
-
-            // Update only the specified fields to avoid accidental overwrites
-            rule.Name = dto.Name;
-            rule.DeviceId = dto.DeviceId > 0 ? dto.DeviceId : null;
-            rule.RoomId = dto.RoomId > 0 ? dto.RoomId : null;
-            rule.Action = dto.Action;
-            rule.NextRunUtc = NormalizeUtc(dto.NextRunUtc);
-            rule.Enabled = dto.Enabled;
-            // Optional: allow updating Value and IntervalMinutes if provided
-            rule.Value = dto.Value;
-            rule.IntervalMinutes = Math.Max(0, dto.IntervalMinutes);
-
-            if (!rule.DeviceId.HasValue && !rule.RoomId.HasValue)
+            if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "Automation must target a device or a room." });
+                return BadRequest(ModelState);
             }
 
-            _db.AutomationRules.Update(rule);
-            await _db.SaveChangesAsync();
-
-            return NoContent();
+            var result = await _automationService.UpdateAsync(id, dto, HttpContext.RequestAborted);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var rule = await _db.AutomationRules.FindAsync(id);
-            if (rule == null) return NotFound();
-            _db.AutomationRules.Remove(rule);
-            await _db.SaveChangesAsync();
-            return NoContent();
+            var result = await _automationService.DeleteAsync(id, HttpContext.RequestAborted);
+            return this.ToActionResult(result);
         }
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SmartHomeManager.Dtos;
 using SmartHomeManager.Models;
 

@@ -5,11 +5,8 @@ namespace SmartHomeManager.Models
     /// <summary>
     /// Represents an audit / activity log entry produced by actions in the system.
     /// </summary>
-    public class ActivityLog
+    public class ActivityLog : BaseEntity
     {
-        /// <summary>Primary key</summary>
-        public int Id { get; set; }
-
         /// <summary>UTC timestamp when the action occurred</summary>
         public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
 

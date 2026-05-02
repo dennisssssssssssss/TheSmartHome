@@ -1,8 +1,7 @@
 ﻿namespace SmartHomeManager.Models
 {
-    public class Device
+    public class Device : BaseEntity
     {
-        public int Id { get; set; }
         public string Nume { get; set; } = string.Empty;
         public string Tip { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;

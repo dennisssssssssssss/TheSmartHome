@@ -3,10 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SmartHomeManager.Models
 {
-    public class AutomationExecution
+    public class AutomationExecution : BaseEntity
     {
-        public int Id { get; set; }
-
         [Required]
         public int AutomationRuleId { get; set; }
 

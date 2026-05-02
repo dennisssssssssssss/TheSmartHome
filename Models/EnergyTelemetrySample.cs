@@ -1,8 +1,7 @@
 namespace SmartHomeManager.Models
 {
-    public class EnergyTelemetrySample
+    public class EnergyTelemetrySample : BaseEntity
     {
-        public int Id { get; set; }
         public int? EnergyAssetId { get; set; }
         public string SourceType { get; set; } = string.Empty;
         public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;

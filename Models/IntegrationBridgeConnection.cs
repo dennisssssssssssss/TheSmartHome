@@ -1,8 +1,7 @@
 namespace SmartHomeManager.Models;
 
-public sealed class IntegrationBridgeConnection
+public sealed class IntegrationBridgeConnection : BaseEntity
 {
-    public int Id { get; set; }
     public string Protocol { get; set; } = string.Empty;
     public string? BaseUrl { get; set; }
     public string? ApiKey { get; set; }
