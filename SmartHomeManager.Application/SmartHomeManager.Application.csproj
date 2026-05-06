@@ -11,28 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.1.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Dtos\**\*.cs" Link="Dtos\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Repositories\I*.cs" Link="Repositories\%(Filename)%(Extension)" />
-    <Compile Include="..\Services\IDeviceControlService.cs" Link="Services\IDeviceControlService.cs" />
-    <Compile Include="..\Services\ISecurityNotificationService.cs" Link="Services\ISecurityNotificationService.cs" />
-    <Compile Include="..\Services\IRoomService.cs" Link="Services\IRoomService.cs" />
-    <Compile Include="..\Services\RoomService.cs" Link="Services\RoomService.cs" />
-    <Compile Include="..\Services\PasswordService.cs" Link="Services\PasswordService.cs" />
-    <Compile Include="..\Services\Integrations\DeviceIntegrationConstants.cs" Link="Services\Integrations\DeviceIntegrationConstants.cs" />
-    <Compile Include="..\Services\Integrations\DeviceIntegrationDescriptor.cs" Link="Services\Integrations\DeviceIntegrationDescriptor.cs" />
-    <Compile Include="..\Services\Integrations\DeviceTaxonomy.cs" Link="Services\Integrations\DeviceTaxonomy.cs" />
-    <Compile Include="..\Services\Integrations\IDeviceIntegrationCatalogService.cs" Link="Services\Integrations\IDeviceIntegrationCatalogService.cs" />
-    <Compile Include="..\Services\Integrations\IIntegrationConnectionService.cs" Link="Services\Integrations\IIntegrationConnectionService.cs" />
-    <Compile Include="..\Services\Integrations\IMatterBridgeClient.cs" Link="Services\Integrations\IMatterBridgeClient.cs" />
-    <Compile Include="..\Services\Integrations\IModbusBridgeClient.cs" Link="Services\Integrations\IModbusBridgeClient.cs" />
-    <Compile Include="..\Services\Integrations\IModbusTelemetryImportService.cs" Link="Services\Integrations\IModbusTelemetryImportService.cs" />
-    <Compile Include="..\Services\Integrations\IntegrationConnectionModels.cs" Link="Services\Integrations\IntegrationConnectionModels.cs" />
-    <Compile Include="..\Services\Integrations\MatterBridgeContracts.cs" Link="Services\Integrations\MatterBridgeContracts.cs" />
-    <Compile Include="..\Services\Integrations\ModbusBridgeContracts.cs" Link="Services\Integrations\ModbusBridgeContracts.cs" />
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
   </ItemGroup>
 
 </Project>

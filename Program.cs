@@ -203,7 +203,7 @@ try
         });
     }
 
-    builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, SmartHomeManager.Repositories.RoomRepository>();
+    builder.Services.AddScoped<SmartHomeManager.Repositories.IRoomRepository, RoomRepository>();
     builder.Services.AddScoped<SmartHomeManager.Repositories.IUserRepository, UserRepository>();
     builder.Services.AddScoped<SmartHomeManager.Repositories.IDeviceRepository, DeviceRepository>();
     builder.Services.AddScoped<SmartHomeManager.Repositories.IAutomationRuleRepository, AutomationRuleRepository>();
@@ -463,6 +463,10 @@ try
     Console.WriteLine($"[System] Application started. Logs: {logFilePath}");
 
     app.Run();
+}
+catch (HostAbortedException)
+{
+    // EF Core design-time tooling aborts the host after reading services; this is expected.
 }
 catch (Exception ex)
 {

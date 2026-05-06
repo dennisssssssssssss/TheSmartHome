@@ -6,8 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="..\Models\**\*.cs" Link="Models\%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-
 </Project>

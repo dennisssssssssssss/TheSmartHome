@@ -7,8 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SmartHomeManager.Domain\SmartHomeManager.Domain.csproj" />
-    <ProjectReference Include="..\SmartHomeManager.Application\SmartHomeManager.Application.csproj" />
+    <ProjectReference Include="..\SmartHomeManager.Application\SmartHomeManager.Application.csproj" SetTargetFramework="TargetFramework=net8.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,24 +22,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Data\**\*.cs" Link="Data\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Repositories\*.cs" Link="Repositories\%(Filename)%(Extension)" Exclude="..\Repositories\I*.cs" />
-    <Compile Include="..\Services\Integrations\**\*.cs"
-             Link="Services\Integrations\%(RecursiveDir)%(Filename)%(Extension)"
-             Exclude="..\Services\Integrations\IDeviceIntegrationCatalogService.cs;
-..\Services\Integrations\IIntegrationConnectionService.cs;
-..\Services\Integrations\IMatterBridgeClient.cs;
-..\Services\Integrations\IModbusBridgeClient.cs;
-..\Services\Integrations\IModbusTelemetryImportService.cs;
-..\Services\Integrations\DeviceIntegrationConstants.cs;
-..\Services\Integrations\DeviceIntegrationDescriptor.cs;
-..\Services\Integrations\DeviceTaxonomy.cs;
-..\Services\Integrations\IntegrationConnectionModels.cs;
-..\Services\Integrations\MatterBridgeContracts.cs;
-..\Services\Integrations\ModbusBridgeContracts.cs" />
   </ItemGroup>
 
 </Project>

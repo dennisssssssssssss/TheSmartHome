@@ -6,14 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <FrontendRoot>ClientApp\</FrontendRoot>
     <FrontendDistRoot>$(FrontendRoot)dist\</FrontendDistRoot>
+    <BuildFrontend>false</BuildFrontend>
     <RollForward>LatestMajor</RollForward>
     <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;deploy\**;artifacts\**;SmartHomeManager.Domain\**;SmartHomeManager.Application\**;SmartHomeManager.Infrastructure\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="SmartHomeManager.Domain\SmartHomeManager.Domain.csproj" />
-    <ProjectReference Include="SmartHomeManager.Application\SmartHomeManager.Application.csproj" />
-    <ProjectReference Include="SmartHomeManager.Infrastructure\SmartHomeManager.Infrastructure.csproj" />
+    <ProjectReference Include="SmartHomeManager.Infrastructure\SmartHomeManager.Infrastructure.csproj" SetTargetFramework="TargetFramework=net8.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,19 +31,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Data\" />
-  </ItemGroup>
-
 	<ItemGroup>
 		<Compile Remove="tests\**\*.cs" />
 		<Content Remove="tests\**" />
 		<EmbeddedResource Remove="tests\**" />
 		<None Remove="tests\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-    <Compile Remove="Models\**\*.cs;Dtos\**\*.cs;Data\**\*.cs;Repositories\**\*.cs;Services\RoomService.cs;Services\IRoomService.cs;Services\IDeviceControlService.cs;Services\ISecurityNotificationService.cs;Services\PasswordService.cs;Services\Integrations\**\*.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -59,7 +50,7 @@
 		</Content>
 	</ItemGroup>
 
-	<Target Name="BuildClientApp" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipFrontendBuild)' != 'true' and Exists('$(FrontendRoot)package.json')">
+	<Target Name="BuildClientApp" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipFrontendBuild)' != 'true' and '$(BuildFrontend)' == 'true' and Exists('$(FrontendRoot)package.json')">
 		<Error Condition="!Exists('$(FrontendRoot)node_modules')" Text="ClientApp dependencies are missing. Run npm install in ClientApp." />
 		<Message Text="Building ClientApp..." Importance="high" />
 		<RemoveDir Directories="$(FrontendDistRoot)" Condition="Exists('$(FrontendDistRoot)')" />

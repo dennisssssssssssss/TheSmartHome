@@ -23,6 +23,7 @@ The technical codebase, naming, and documentation are kept in English. The produ
 - JWT authentication
 - SignalR
 - Serilog
+- layered architecture with `Domain`, `Application`, and `Infrastructure` projects
 
 ### Frontend
 
@@ -36,7 +37,7 @@ The technical codebase, naming, and documentation are kept in English. The produ
 
 ### Prerequisites
 
-- .NET SDK `9.0.311` or a compatible SDK accepted by `global.json`
+- .NET SDK 8+; `global.json` starts from `8.0.100` and rolls forward to a compatible installed major SDK
 - Node.js 20+ recommended
 - Visual Studio or Visual Studio Insiders
 
@@ -82,6 +83,7 @@ From the repository root:
 cd ClientApp
 npm install
 npm run typecheck
+npm run build
 cd ..
 dotnet build SmartHomeManager.csproj
 dotnet test tests\SmartHomeManager.Tests\SmartHomeManager.Tests.csproj -c Release -p:SkipFrontendBuild=true
@@ -110,18 +112,16 @@ Available only when default admin seeding is enabled, which is the development d
 ## Repository map
 
 - `ClientApp/` contains the React frontend
-- `Controllers/` contains HTTP API endpoints
-- `Data/` contains the EF Core database context
-- `Dtos/` contains backend DTO contracts
+- `Controllers/` contains thin HTTP API endpoints
 - `Extensions/` contains service-registration helpers
 - `Hubs/` contains SignalR hubs
 - `Middleware/` contains request pipeline middleware
-- `Migrations/` contains EF Core migrations
-- `Models/` contains domain entities
-- `Repositories/` contains persistence abstractions and implementations
-- `Services/` contains business logic, notifications, and scheduling
+- `Services/` contains API-hosted runtime services, notifications, and scheduling
+- `SmartHomeManager.Domain/` contains domain entities and base entity types
+- `SmartHomeManager.Application/` contains DTOs, application services, mappings, service results, integration contracts, and repository abstractions
+- `SmartHomeManager.Infrastructure/` contains EF Core, migrations, repository implementations, JWT infrastructure, and external bridge integrations
 - `tests/` contains backend unit and integration-style tests
-- `wwwroot/` contains generated frontend assets copied during build
+- `wwwroot/` contains generated frontend assets copied by the publish script or by an explicit frontend build
 
 ## Project docs
 
@@ -138,12 +138,14 @@ Available only when default admin seeding is enabled, which is the development d
 ## Quality guardrails
 
 - GitHub Actions CI validates frontend type-checking, backend build, and backend tests
-- backend tests cover auth, password hashing, security notifications, and recurring automations
+- backend tests cover auth, password hashing, audit fields, application services, security notifications, integrations, and recurring automations
 - user-facing copy is centralized under `ClientApp/src/lib/i18n/`
 
 ## Build output policy
 
-Frontend artifacts are generated during build and copied into `wwwroot/`. Generated outputs and local runtime state are intentionally ignored by Git, including:
+Frontend artifacts are generated with `npm run build`. For self-contained releases, `scripts/publish-self-contained.ps1` builds the frontend, copies `ClientApp/dist` into `wwwroot`, then publishes the backend. The MSBuild frontend step is opt-in with `/p:BuildFrontend=true` so Visual Studio Debug builds stay fast and predictable.
+
+Generated outputs and local runtime state are intentionally ignored by Git, including:
 
 - `ClientApp/dist/`
 - `wwwroot/assets/`

@@ -21,6 +21,8 @@ Use the included PowerShell script:
 .\scripts\publish-self-contained.ps1 -Runtime win-x64
 ```
 
+The script builds the React frontend first, copies `ClientApp/dist` into `wwwroot`, then publishes the ASP.NET app with the .NET runtime included.
+
 Other supported runtimes:
 
 - `linux-x64`

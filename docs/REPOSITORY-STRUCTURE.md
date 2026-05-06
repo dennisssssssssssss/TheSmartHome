@@ -7,25 +7,23 @@ This document explains the current source-of-truth structure for SmartHome Manag
 - `ClientApp/`
   React frontend source.
 - `Controllers/`
-  ASP.NET Core API controllers.
-- `Data/`
-  EF Core database context and persistence bootstrap.
-- `Dtos/`
-  Request and response contracts for the backend API.
+  Thin ASP.NET Core API controllers. Controllers translate HTTP requests into application service calls.
 - `Extensions/`
   Service registration and application startup helpers.
 - `Hubs/`
   SignalR hubs for live updates.
 - `Middleware/`
   Request pipeline middleware.
-- `Migrations/`
-  EF Core migration history.
-- `Models/`
-  Domain entities persisted in the database.
-- `Repositories/`
-  Data access abstractions and implementations.
 - `Services/`
-  Business logic such as automation scheduling, password hashing, and security notifications.
+  API-hosted runtime services, such as scheduling, SignalR-backed notifications, and live update publishing.
+- `SmartHomeManager.Domain/`
+  Domain entities and base entity types.
+- `SmartHomeManager.Application/`
+  DTOs, application services, service results, mapping profiles, integration contracts, and repository abstractions.
+- `SmartHomeManager.Infrastructure/`
+  EF Core `AppDbContext`, migrations, repository implementations, JWT/token infrastructure, and hardware bridge integrations.
+- `tests/`
+  Backend tests for controllers, services, infrastructure behavior, and integrations.
 - `wwwroot/`
   Generated frontend assets copied during build.
 
@@ -53,9 +51,10 @@ Inside `ClientApp/src`:
 ## Request flow
 
 1. The frontend calls `ClientApp/src/lib/api.ts`.
-2. Controllers map DTOs to entities and invoke services when needed.
-3. Services and repositories persist changes through EF Core.
-4. SignalR hubs broadcast live updates back to the frontend.
+2. Controllers validate HTTP shape and delegate to application services.
+3. Application services return `ServiceResult` values and use repositories for persistence.
+4. Infrastructure repositories and bridge clients handle EF Core, SQLite, Matter, Modbus, and other external integrations.
+5. SignalR publishers broadcast live updates back to the frontend.
 
 ## Naming rules
 
