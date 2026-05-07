@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -434,8 +435,34 @@ try
     }
 
     app.UseMiddleware<SecurityHeadersMiddleware>();
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
+
+    var webRootPath = app.Environment.WebRootPath ?? Path.Combine(contentRootPath, "wwwroot");
+    var webRootIndexPath = Path.Combine(webRootPath, "index.html");
+    var clientAppDistPath = Path.Combine(contentRootPath, "ClientApp", "dist");
+    var clientAppDistIndexPath = Path.Combine(clientAppDistPath, "index.html");
+    var useClientAppDistInDevelopment =
+        app.Environment.IsDevelopment() &&
+        !File.Exists(webRootIndexPath) &&
+        File.Exists(clientAppDistIndexPath);
+    var appStaticFileProvider = useClientAppDistInDevelopment
+        ? new CompositeFileProvider(
+            app.Environment.WebRootFileProvider,
+            new PhysicalFileProvider(clientAppDistPath))
+        : app.Environment.WebRootFileProvider;
+
+    if (useClientAppDistInDevelopment)
+    {
+        Console.WriteLine($"[System] Serving frontend from development build: {clientAppDistPath}");
+    }
+
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        FileProvider = appStaticFileProvider,
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = appStaticFileProvider,
+    });
     app.UseSerilogRequestLogging();
 
     if (enableCors)
@@ -458,7 +485,48 @@ try
     app.MapControllers();
     app.MapHub<SmartHomeHub>("/hubs/smarthome");
     app.MapHealthChecks("/health");
-    app.MapFallbackToFile("index.html");
+    if (File.Exists(webRootIndexPath) || useClientAppDistInDevelopment)
+    {
+        app.MapFallbackToFile("index.html", new StaticFileOptions
+        {
+            FileProvider = appStaticFileProvider,
+        });
+    }
+    else if (app.Environment.IsDevelopment())
+    {
+        app.MapFallback(async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            context.Response.ContentType = "text/html; charset=utf-8";
+            await context.Response.WriteAsync("""
+                <!doctype html>
+                <html lang="ro">
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>Nexus Home - frontend missing</title>
+                    <style>
+                        body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: #070706; color: #f6efe1; }
+                        main { min-height: 100vh; display: grid; place-items: center; padding: 32px; }
+                        section { max-width: 720px; border: 1px solid #3a2e13; background: #10100e; padding: 32px; box-shadow: 0 30px 80px rgba(0,0,0,.35); }
+                        h1 { margin: 0 0 16px; font-size: clamp(32px, 7vw, 64px); font-weight: 400; }
+                        p { color: #b6b0a3; line-height: 1.7; }
+                        code { color: #e1b83f; background: #1b1608; padding: 3px 7px; border-radius: 6px; }
+                    </style>
+                </head>
+                <body>
+                    <main>
+                        <section>
+                            <h1>Frontend-ul nu este construit încă.</h1>
+                            <p>Backend-ul rulează corect, dar aplicația React lipsește din <code>wwwroot</code> sau <code>ClientApp/dist</code>.</p>
+                            <p>Rulează o singură dată <code>cd ClientApp</code>, <code>npm install</code>, <code>npm run build</code>, apoi pornește din nou aplicația din Visual Studio.</p>
+                        </section>
+                    </main>
+                </body>
+                </html>
+                """);
+        });
+    }
 
     Console.WriteLine($"[System] Application started. Logs: {logFilePath}");
 

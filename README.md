@@ -143,7 +143,7 @@ Available only when default admin seeding is enabled, which is the development d
 
 ## Build output policy
 
-Frontend artifacts are generated with `npm run build`. For self-contained releases, `scripts/publish-self-contained.ps1` builds the frontend, copies `ClientApp/dist` into `wwwroot`, then publishes the backend. The MSBuild frontend step is opt-in with `/p:BuildFrontend=true` so Visual Studio Debug builds stay fast and predictable.
+Frontend artifacts are generated with `npm run build`. In Visual Studio Debug builds, MSBuild rebuilds the frontend automatically when `ClientApp/node_modules` exists, then copies the result into `wwwroot`. For self-contained releases, `scripts/publish-self-contained.ps1` builds the frontend, copies `ClientApp/dist` into `wwwroot`, then publishes the backend. You can still skip the frontend step with `/p:SkipFrontendBuild=true` or force it with `/p:BuildFrontend=true`.
 
 Generated outputs and local runtime state are intentionally ignored by Git, including:
 

@@ -6,9 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <FrontendRoot>ClientApp\</FrontendRoot>
     <FrontendDistRoot>$(FrontendRoot)dist\</FrontendDistRoot>
-    <BuildFrontend>false</BuildFrontend>
     <RollForward>LatestMajor</RollForward>
     <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;deploy\**;artifacts\**;SmartHomeManager.Domain\**;SmartHomeManager.Application\**;SmartHomeManager.Infrastructure\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <BuildFrontend Condition="'$(BuildFrontend)' == '' and '$(Configuration)' == 'Debug' and Exists('$(FrontendRoot)node_modules')">true</BuildFrontend>
+    <BuildFrontend Condition="'$(BuildFrontend)' == ''">false</BuildFrontend>
   </PropertyGroup>
 
   <ItemGroup>
